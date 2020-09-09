@@ -1,0 +1,102 @@
+{
+  "manifest_version": 1,
+  "id": "dmx-adapter",
+  "name": "Dmx",
+  "short_name": "Dmx",
+  "version": "0.1.0",
+  "description": "Connect your DMX devices",
+  "homepage_url": "https://github.com/tim-hellhake/dmx-adapter#readme",
+  "license": "MPL-2.0",
+  "author": "Tim Hellhake",
+  "gateway_specific_settings": {
+    "webthings": {
+      "exec": "{path}/dmx-adapter {path}",
+      "strict_min_version": "0.10.0",
+      "strict_max_version": "*",
+      "primary_type": "adapter"
+    }
+  },
+  "options": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adapters": {
+          "type": "array",
+          "title": "List of adapters",
+          "items": {
+            "type": "object",
+            "title": "DMX adapter",
+            "required": [
+              "title",
+              "serialPort"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "title": "The ID of the adapter (will be generated for you)",
+                "readOnly": true
+              },
+              "title": {
+                "type": "string",
+                "title": "The title of the adapter"
+              },
+              "serialPort": {
+                "type": "string",
+                "title": "The serial port of the adapter"
+              },
+              "devices": {
+                "type": "array",
+                "title": "List of devices",
+                "items": {
+                  "type": "object",
+                  "title": "DMX device",
+                  "required": [
+                    "title"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "title": "The ID of the device (will be generated for you)",
+                      "readOnly": true
+                    },
+                    "title": {
+                      "type": "string",
+                      "title": "The title of the device"
+                    },
+                    "properties": {
+                      "type": "array",
+                      "title": "List of properties",
+                      "items": {
+                        "type": "object",
+                        "title": "DMX properties",
+                        "required": [
+                          "title",
+                          "address"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "title": "The ID of the register (will be generated for you)",
+                            "readOnly": true
+                          },
+                          "title": {
+                            "type": "string",
+                            "title": "The title of the property"
+                          },
+                          "address": {
+                            "type": "integer",
+                            "title": "The address of the property"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
