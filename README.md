@@ -1,5 +1,6 @@
 # DMX Adapter
 
+[![build](https://github.com/tim-hellhake/dmx-adapter/workflows/Build/badge.svg)](https://github.com/tim-hellhake/dmx-adapter/actions?query=workflow:Build)
 [![license](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 
 This adapter allows the gateway to control DMX devices.
