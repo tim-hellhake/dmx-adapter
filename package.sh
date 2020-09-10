@@ -20,7 +20,10 @@ FILES=(manifest.json LICENSE README.md "target/debug/$BIN")
 
 mkdir -p package
 cp "${FILES[@]}" package
-shasum --algorithm 256 package/* > package/SHA256SUMS
+
+cd package
+shasum --algorithm 256 * > SHA256SUMS
+cd ..
 
 tar -czvf "${TARFILE}" package/*
 shasum --algorithm 256 "${TARFILE}" > "${TARFILE}".sha256sum
