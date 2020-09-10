@@ -16,10 +16,11 @@ fi
 BIN=$(cat manifest.json | jq '.id' | tr -d '"')
 VERSION=$(cat manifest.json | jq '.version' | tr -d '"')
 TARFILE="${BIN}-${VERSION}${TARFILE_SUFFIX}.tgz"
-cp "target/debug/$BIN" .
+FILES=(manifest.json LICENSE README.md "target/debug/$BIN")
 
-FILES=(manifest.json LICENSE README.md $BIN)
+mkdir -p package
+cp "${FILES[@]}" package
+shasum --algorithm 256 package/* > package/SHA256SUMS
 
-shasum --algorithm 256 "${FILES[@]}" > SHA256SUMS
-tar -czvf "${TARFILE}" "${FILES[@]}" SHA256SUMS
+tar -czvf "${TARFILE}" package/*
 shasum --algorithm 256 "${TARFILE}" > "${TARFILE}".sha256sum
