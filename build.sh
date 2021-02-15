@@ -51,7 +51,7 @@ function build_native() {
 function build_cross_compiled() {
   DEPENDENCIES="sudo apt-get -qq update && sudo apt-get install --no-install-recommends -y libssl-dev jq"
   TEMP_FS="mkdir -p ~/.cargo && sudo mount -t tmpfs -o size=2048m tmpfs ~/.cargo"
-  docker run --rm -t --cap-add=SYS_ADMIN --security-opt apparmor:unconfined -v $PWD:/build mozillaiot/toolchain-${ADDON_ARCH}-node-14 bash -c "cd /build; $DEPENDENCIES; $TEMP_FS; ADDON_ARCH=${ADDON_ARCH} ./package.sh"
+  docker run --rm -t --cap-add=SYS_ADMIN --security-opt apparmor:unconfined -v $PWD:/build webthingsio/toolchain-${ADDON_ARCH}-node-14 bash -c "cd /build; $DEPENDENCIES; $TEMP_FS; ADDON_ARCH=${ADDON_ARCH} ./package.sh"
 }
 
 case "${ADDON_ARCH}" in
