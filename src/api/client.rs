@@ -3,11 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::message::{
-    AdapterUnloadRequest, DeviceSetPropertyCommand, IncomingMessage, IncomingPayloadMessage,
-    PayloadMessage, PluginRegisterRequest, PluginRegisterResponse, PluginUnloadRequest,
-    TypeMessage,
-};
+use crate::api::message::{IncomingMessage, IncomingPayloadMessage, PayloadMessage, TypeMessage};
 use crate::api::plugin::Plugin;
 use serde::Deserialize;
 use serde_json::error::Error as SerdeJsonError;
@@ -15,6 +11,10 @@ use tungstenite::client::AutoStream;
 use tungstenite::error::Error as WebSocketError;
 use tungstenite::{Message, WebSocket};
 use url::Url;
+use webthings_gateway_ipc_types::{
+    AdapterUnloadRequestData, DeviceSetPropertyCommandData, PluginRegisterRequestData,
+    PluginRegisterResponseData, PluginUnloadRequestData,
+};
 
 pub struct Client {
     socket: WebSocket<AutoStream>,
@@ -45,7 +45,7 @@ impl Client {
                                 1 => {
                                     return Client::parse_message(
                                         json,
-                                        |x: PluginRegisterResponse| {
+                                        |x: PluginRegisterResponseData| {
                                             IncomingMessage::PluginRegister(x)
                                         },
                                     )
@@ -53,20 +53,25 @@ impl Client {
                                 8198 => {
                                     return Client::parse_message(
                                         json,
-                                        |x: DeviceSetPropertyCommand| {
+                                        |x: DeviceSetPropertyCommandData| {
                                             IncomingMessage::DeviceSetProperty(x)
                                         },
                                     )
                                 }
                                 2 => {
-                                    return Client::parse_message(json, |x: PluginUnloadRequest| {
-                                        IncomingMessage::PluginUnload(x)
-                                    })
+                                    return Client::parse_message(
+                                        json,
+                                        |x: PluginUnloadRequestData| {
+                                            IncomingMessage::PluginUnload(x)
+                                        },
+                                    )
                                 }
                                 4097 => {
                                     return Client::parse_message(
                                         json,
-                                        |x: AdapterUnloadRequest| IncomingMessage::AdapterUnload(x),
+                                        |x: AdapterUnloadRequestData| {
+                                            IncomingMessage::AdapterUnload(x)
+                                        },
                                     )
                                 }
                                 _ => Err(format!(
@@ -100,7 +105,7 @@ impl Client {
     pub fn register_plugin(&mut self, plugin_id: &str) -> Result<Plugin, String> {
         let message = PayloadMessage {
             message_type: 0,
-            data: &PluginRegisterRequest {
+            data: &PluginRegisterRequestData {
                 plugin_id: plugin_id.to_string(),
             },
         };

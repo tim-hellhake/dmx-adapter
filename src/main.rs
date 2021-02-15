@@ -12,7 +12,6 @@ use url::Url;
 mod adapter;
 mod api;
 mod config;
-mod descriptions;
 mod device;
 mod player;
 mod property;

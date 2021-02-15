@@ -4,9 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::client::Client;
-use crate::api::device::Device;
-use crate::api::message::{AdapterUnloadResponse, DeviceAddedNotification, PayloadMessage};
-use crate::descriptions::DeviceDescription;
+use crate::api::device;
+use crate::api::message::PayloadMessage;
+use webthings_gateway_ipc_types::{AdapterUnloadResponseData, Device, DeviceAddedNotificationData};
 
 pub struct Adapter {
     pub plugin_id: String,
@@ -17,13 +17,13 @@ impl Adapter {
     pub fn add_device(
         &self,
         client: &mut Client,
-        device_description: &DeviceDescription,
-    ) -> Result<Device, String> {
+        device_description: Device,
+    ) -> Result<device::Device, String> {
         let device_id = device_description.id.clone();
 
         let message = PayloadMessage {
             message_type: 8192,
-            data: &DeviceAddedNotification {
+            data: &DeviceAddedNotificationData {
                 plugin_id: self.plugin_id.clone(),
                 adapter_id: self.adapter_id.clone(),
                 device: device_description,
@@ -32,7 +32,7 @@ impl Adapter {
 
         match serde_json::to_string(&message) {
             Ok(json) => match client.send(json) {
-                Ok(_) => Ok(Device {
+                Ok(_) => Ok(device::Device {
                     plugin_id: self.plugin_id.clone(),
                     adapter_id: self.adapter_id.clone(),
                     device_id,
@@ -46,7 +46,7 @@ impl Adapter {
     pub fn unload(&self, client: &mut Client) -> Result<(), String> {
         let message = PayloadMessage {
             message_type: 4098,
-            data: &AdapterUnloadResponse {
+            data: &AdapterUnloadResponseData {
                 plugin_id: self.plugin_id.clone(),
                 adapter_id: self.adapter_id.clone(),
             },

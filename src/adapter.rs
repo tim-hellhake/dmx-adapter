@@ -42,7 +42,7 @@ impl DmxAdapter {
 
                     let dmx_device = DmxDevice::new(device_config);
 
-                    match adapter.add_device(client, &dmx_device.description) {
+                    match adapter.add_device(client, dmx_device.description.clone()) {
                         Ok(gateway_device) => {
                             let id = dmx_device.description.id.clone();
                             self.devices

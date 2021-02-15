@@ -14,3 +14,4 @@ sqlite = "0.25.3"
 uuid = { version = "0.8.1", features = ["v4"] }
 dmx = '0.2.1'
 dmx-serial = '0.4.0'
+webthings-gateway-ipc-types = { git = "https://github.com/tim-hellhake/webthings-gateway-ipc-types", tag = "1.0.0-alpha.1" }

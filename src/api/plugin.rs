@@ -5,7 +5,8 @@
  */
 use crate::api::adapter::Adapter;
 use crate::api::client::Client;
-use crate::api::message::{AdapterAddedNotification, PayloadMessage, PluginUnloadResponse};
+use crate::api::message::PayloadMessage;
+use webthings_gateway_ipc_types::{AdapterAddedNotificationData, PluginUnloadResponseData};
 
 pub struct Plugin {
     pub plugin_id: String,
@@ -20,7 +21,7 @@ impl Plugin {
     ) -> Result<Adapter, String> {
         let message = PayloadMessage {
             message_type: 4096,
-            data: &AdapterAddedNotification {
+            data: &AdapterAddedNotificationData {
                 plugin_id: self.plugin_id.clone(),
                 adapter_id: adapter_id.to_string(),
                 name: name.to_string(),
@@ -43,7 +44,7 @@ impl Plugin {
     pub fn unload(&self, client: &mut Client) -> Result<(), String> {
         let message = PayloadMessage {
             message_type: 3,
-            data: &PluginUnloadResponse {
+            data: &PluginUnloadResponseData {
                 plugin_id: self.plugin_id.clone(),
             },
         };
