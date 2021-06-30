@@ -7,5 +7,4 @@ pub mod adapter;
 pub mod client;
 pub mod database;
 pub mod device;
-pub mod message;
 pub mod plugin;

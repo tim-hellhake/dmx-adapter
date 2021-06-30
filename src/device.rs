@@ -8,7 +8,6 @@ use crate::api::device;
 use crate::config;
 use crate::player::Player;
 use crate::property::DmxProperty;
-use serde_json::json;
 use serde_json::value::Value;
 use std::collections::{BTreeMap, HashMap};
 use webthings_gateway_ipc_types::Device;
@@ -35,13 +34,13 @@ impl DmxDevice {
             );
 
             let property = DmxProperty::new(property_config);
-            property_descriptions.insert(id.clone(), json!(property.description.clone()));
+            property_descriptions.insert(id.clone(), property.description.clone());
             properties.insert(id, property);
         }
 
         let description = Device {
-            _context: None,
-            _type: Some(vec![]),
+            at_context: None,
+            at_type: Some(vec![]),
             id: device_config.id.expect("Devices must have an id"),
             title: Some(String::from("Dmx")),
             description: Some(String::from("A dmx light")),

@@ -5,8 +5,7 @@
  */
 use crate::api::client::Client;
 use crate::api::device;
-use crate::api::message::PayloadMessage;
-use webthings_gateway_ipc_types::{AdapterUnloadResponseData, Device, DeviceAddedNotificationData};
+use webthings_gateway_ipc_types::{AdapterUnloadResponseMessageData, Device, DeviceAddedNotificationMessageData, Message};
 
 pub struct Adapter {
     pub plugin_id: String,
@@ -21,14 +20,11 @@ impl Adapter {
     ) -> Result<device::Device, String> {
         let device_id = device_description.id.clone();
 
-        let message = PayloadMessage {
-            message_type: 8192,
-            data: &DeviceAddedNotificationData {
-                plugin_id: self.plugin_id.clone(),
-                adapter_id: self.adapter_id.clone(),
-                device: device_description,
-            },
-        };
+        let message: Message = DeviceAddedNotificationMessageData {
+            plugin_id: self.plugin_id.clone(),
+            adapter_id: self.adapter_id.clone(),
+            device: device_description,
+        }.into();
 
         match serde_json::to_string(&message) {
             Ok(json) => match client.send(json) {
@@ -44,13 +40,10 @@ impl Adapter {
     }
 
     pub fn unload(&self, client: &mut Client) -> Result<(), String> {
-        let message = PayloadMessage {
-            message_type: 4098,
-            data: &AdapterUnloadResponseData {
-                plugin_id: self.plugin_id.clone(),
-                adapter_id: self.adapter_id.clone(),
-            },
-        };
+        let message: Message = AdapterUnloadResponseMessageData {
+            plugin_id: self.plugin_id.clone(),
+            adapter_id: self.adapter_id.clone(),
+        }.into();
 
         match serde_json::to_string(&message) {
             Ok(json) => match client.send(json) {

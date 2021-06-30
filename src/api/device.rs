@@ -4,8 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::client::Client;
-use crate::api::message::PayloadMessage;
-use webthings_gateway_ipc_types::{DevicePropertyChangedNotificationData, Property};
+use webthings_gateway_ipc_types::{DevicePropertyChangedNotificationMessageData, Property, Message};
 
 pub struct Device {
     pub plugin_id: String,
@@ -19,15 +18,12 @@ impl Device {
         client: &mut Client,
         property_description: Property,
     ) -> Result<(), String> {
-        let message = PayloadMessage {
-            message_type: 8199,
-            data: &DevicePropertyChangedNotificationData {
-                plugin_id: self.plugin_id.clone(),
-                adapter_id: self.adapter_id.clone(),
-                device_id: self.device_id.clone(),
-                property: property_description,
-            },
-        };
+        let message: Message = DevicePropertyChangedNotificationMessageData {
+            plugin_id: self.plugin_id.clone(),
+            adapter_id: self.adapter_id.clone(),
+            device_id: self.device_id.clone(),
+            property: property_description,
+        }.into();
 
         match serde_json::to_string(&message) {
             Ok(json) => match client.send(json) {

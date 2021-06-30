@@ -5,7 +5,7 @@
  */
 use crate::adapter::DmxAdapter;
 use crate::api::client::Client;
-use crate::api::message::IncomingMessage;
+use webthings_gateway_ipc_types::{Message as IPCMessage, DeviceSetPropertyCommand, AdapterUnloadRequest, PluginUnloadRequest};
 use std::collections::HashMap;
 use url::Url;
 
@@ -30,7 +30,7 @@ fn main() {
     loop {
         match client.read() {
             Ok(message) => match message {
-                IncomingMessage::PluginRegister(_) => {
+                IPCMessage::PluginRegisterResponse(_) => {
                     let mut conf = config::load();
                     config::generate_ids(&mut conf);
                     config::save(&conf);
@@ -61,7 +61,7 @@ fn main() {
                         adapters.insert(id, (dmx_adapter, adapter));
                     }
                 }
-                IncomingMessage::DeviceSetProperty(message) => {
+                IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand { message_type: _, data: message }) => {
                     match adapters.get_mut(&message.adapter_id) {
                         Some((dmx_adapter, _)) => {
                             dmx_adapter.update(
@@ -74,7 +74,7 @@ fn main() {
                         None => println!("Cannot find adapter '{}'", message.adapter_id),
                     }
                 }
-                IncomingMessage::AdapterUnload(message) => {
+                IPCMessage::AdapterUnloadRequest(AdapterUnloadRequest { message_type: _, data: message }) => {
                     println!(
                         "Received request to unload adapter '{}'",
                         message.adapter_id
@@ -90,7 +90,7 @@ fn main() {
                         None => println!("Cannot find adapter '{}'", message.adapter_id),
                     }
                 }
-                IncomingMessage::PluginUnload(message) => {
+                IPCMessage::PluginUnloadRequest(PluginUnloadRequest { message_type: _, data: message }) => {
                     println!("Received request to unload plugin '{}'", message.plugin_id);
 
                     match plugin.unload(&mut client) {
@@ -99,6 +99,10 @@ fn main() {
                     };
 
                     break;
+                }
+                IPCMessage::DeviceSavedNotification(_) => {}
+                msg => {
+                    eprintln!("Unexpected msg: {:?}", msg);
                 }
             },
             Err(err) => println!("Could not read message: {}", err),
