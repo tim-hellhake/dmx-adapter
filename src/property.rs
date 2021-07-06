@@ -16,7 +16,7 @@ pub struct DmxProperty {
 impl DmxProperty {
     pub fn new(property_config: config::Property) -> Self {
         let description = Property {
-            _type: Some(String::from("LevelProperty")),
+            at_type: Some(String::from("LevelProperty")),
             name: Some(property_config.id.expect("Properties must have an id")),
             title: Some(property_config.title.clone()),
             description: Some(property_config.title),
