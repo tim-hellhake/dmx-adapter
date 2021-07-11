@@ -14,7 +14,7 @@ pub fn load_string() -> String {
     let mut cursor = connection
         .prepare("SELECT value FROM settings WHERE key = ?")
         .expect("Could not select settings")
-        .cursor();
+        .into_cursor();
 
     cursor
         .bind(&[Value::String(key)])
