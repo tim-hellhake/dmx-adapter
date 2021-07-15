@@ -5,7 +5,9 @@
  */
 use crate::api::client::Client;
 use crate::api::device;
-use webthings_gateway_ipc_types::{AdapterUnloadResponseMessageData, Device, DeviceAddedNotificationMessageData, Message};
+use webthings_gateway_ipc_types::{
+    AdapterUnloadResponseMessageData, Device, DeviceAddedNotificationMessageData, Message,
+};
 
 pub struct Adapter {
     pub plugin_id: String,
@@ -13,7 +15,7 @@ pub struct Adapter {
 }
 
 impl Adapter {
-    pub fn add_device(
+    pub async fn add_device(
         &self,
         client: &mut Client,
         device_description: Device,
@@ -24,10 +26,11 @@ impl Adapter {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
             device: device_description,
-        }.into();
+        }
+        .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json) {
+            Ok(json) => match client.send(json).await {
                 Ok(_) => Ok(device::Device {
                     plugin_id: self.plugin_id.clone(),
                     adapter_id: self.adapter_id.clone(),
@@ -39,14 +42,15 @@ impl Adapter {
         }
     }
 
-    pub fn unload(&self, client: &mut Client) -> Result<(), String> {
+    pub async fn unload(&self, client: &mut Client) -> Result<(), String> {
         let message: Message = AdapterUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
-        }.into();
+        }
+        .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json) {
+            Ok(json) => match client.send(json).await {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
             },

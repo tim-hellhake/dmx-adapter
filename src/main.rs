@@ -5,9 +5,11 @@
  */
 use crate::adapter::DmxAdapter;
 use crate::api::client::Client;
-use webthings_gateway_ipc_types::{Message as IPCMessage, DeviceSetPropertyCommand, AdapterUnloadRequest, PluginUnloadRequest};
 use std::collections::HashMap;
 use url::Url;
+use webthings_gateway_ipc_types::{
+    AdapterUnloadRequest, DeviceSetPropertyCommand, Message as IPCMessage, PluginUnloadRequest,
+};
 
 mod adapter;
 mod api;
@@ -16,96 +18,113 @@ mod device;
 mod player;
 mod property;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut client =
         Client::connect(Url::parse("ws://localhost:9500").expect("Could not parse url"))
+            .await
             .expect("Could not connect to gateway");
 
     let plugin = client
         .register_plugin("dmx-adapter")
+        .await
         .expect("Could not register plugin");
 
     let mut adapters = HashMap::new();
 
     loop {
-        match client.read() {
-            Ok(message) => match message {
-                IPCMessage::PluginRegisterResponse(_) => {
-                    let mut conf = config::load();
-                    config::generate_ids(&mut conf);
-                    config::save(&conf);
+        match client.read().await {
+            None => {}
+            Some(result) => match result {
+                Ok(message) => match message {
+                    IPCMessage::PluginRegisterResponse(_) => {
+                        let mut conf = config::load();
+                        config::generate_ids(&mut conf);
+                        config::save(&conf);
 
-                    println!("Plugin registered");
+                        println!("Plugin registered");
 
-                    for adapter_config in conf.adapters {
-                        let id = adapter_config
-                            .id
-                            .as_ref()
-                            .expect("adapters must have an id")
-                            .clone();
+                        for adapter_config in conf.adapters {
+                            let id = adapter_config
+                                .id
+                                .as_ref()
+                                .expect("adapters must have an id")
+                                .clone();
 
-                        let title = adapter_config.title.clone();
+                            let title = adapter_config.title.clone();
 
-                        println!("Creating adapter '{}' ({})", title, id);
+                            println!("Creating adapter '{}' ({})", title, id);
 
-                        let mut dmx_adapter = DmxAdapter::new();
+                            let mut dmx_adapter = DmxAdapter::new();
 
-                        let adapter = plugin
-                            .create_adapter(&mut client, &id, &title)
-                            .expect("Could not create adapter");
+                            let adapter = plugin
+                                .create_adapter(&mut client, &id, &title)
+                                .await
+                                .expect("Could not create adapter");
 
-                        dmx_adapter
-                            .init(&mut client, &adapter, adapter_config)
-                            .expect("Could not initialize adapter");
+                            dmx_adapter
+                                .init(&mut client, &adapter, adapter_config)
+                                .await
+                                .expect("Could not initialize adapter");
 
-                        adapters.insert(id, (dmx_adapter, adapter));
+                            adapters.insert(id, (dmx_adapter, adapter));
+                        }
                     }
-                }
-                IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand { message_type: _, data: message }) => {
-                    match adapters.get_mut(&message.adapter_id) {
+                    IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand {
+                        message_type: _,
+                        data: message,
+                    }) => match adapters.get_mut(&message.adapter_id) {
                         Some((dmx_adapter, _)) => {
-                            dmx_adapter.update(
-                                &mut client,
-                                &message.device_id,
-                                &message.property_name,
-                                &message.property_value,
-                            );
+                            dmx_adapter
+                                .update(
+                                    &mut client,
+                                    &message.device_id,
+                                    &message.property_name,
+                                    &message.property_value,
+                                )
+                                .await;
                         }
                         None => println!("Cannot find adapter '{}'", message.adapter_id),
-                    }
-                }
-                IPCMessage::AdapterUnloadRequest(AdapterUnloadRequest { message_type: _, data: message }) => {
-                    println!(
-                        "Received request to unload adapter '{}'",
-                        message.adapter_id
-                    );
+                    },
+                    IPCMessage::AdapterUnloadRequest(AdapterUnloadRequest {
+                        message_type: _,
+                        data: message,
+                    }) => {
+                        println!(
+                            "Received request to unload adapter '{}'",
+                            message.adapter_id
+                        );
 
-                    match adapters.get_mut(&message.adapter_id) {
-                        Some((_, adapter)) => {
-                            match adapter.unload(&mut client) {
-                                Ok(_) => {}
-                                Err(msg) => println!("Could not send unload response: {}", msg),
-                            };
+                        match adapters.get_mut(&message.adapter_id) {
+                            Some((_, adapter)) => {
+                                match adapter.unload(&mut client).await {
+                                    Ok(_) => {}
+                                    Err(msg) => println!("Could not send unload response: {}", msg),
+                                };
+                            }
+                            None => println!("Cannot find adapter '{}'", message.adapter_id),
                         }
-                        None => println!("Cannot find adapter '{}'", message.adapter_id),
                     }
-                }
-                IPCMessage::PluginUnloadRequest(PluginUnloadRequest { message_type: _, data: message }) => {
-                    println!("Received request to unload plugin '{}'", message.plugin_id);
+                    IPCMessage::PluginUnloadRequest(PluginUnloadRequest {
+                        message_type: _,
+                        data: message,
+                    }) => {
+                        println!("Received request to unload plugin '{}'", message.plugin_id);
 
-                    match plugin.unload(&mut client) {
-                        Ok(_) => {}
-                        Err(msg) => println!("Could not send unload response: {}", msg),
-                    };
+                        match plugin.unload(&mut client).await {
+                            Ok(_) => {}
+                            Err(msg) => println!("Could not send unload response: {}", msg),
+                        };
 
-                    break;
-                }
-                IPCMessage::DeviceSavedNotification(_) => {}
-                msg => {
-                    eprintln!("Unexpected msg: {:?}", msg);
-                }
+                        break;
+                    }
+                    IPCMessage::DeviceSavedNotification(_) => {}
+                    msg => {
+                        eprintln!("Unexpected msg: {:?}", msg);
+                    }
+                },
+                Err(err) => println!("Could not read message: {}", err),
             },
-            Err(err) => println!("Could not read message: {}", err),
         }
     }
 

@@ -5,14 +5,16 @@
  */
 use crate::api::adapter::Adapter;
 use crate::api::client::Client;
-use webthings_gateway_ipc_types::{AdapterAddedNotificationMessageData, PluginUnloadResponseMessageData, Message};
+use webthings_gateway_ipc_types::{
+    AdapterAddedNotificationMessageData, Message, PluginUnloadResponseMessageData,
+};
 
 pub struct Plugin {
     pub plugin_id: String,
 }
 
 impl Plugin {
-    pub fn create_adapter(
+    pub async fn create_adapter(
         &self,
         client: &mut Client,
         adapter_id: &str,
@@ -23,10 +25,11 @@ impl Plugin {
             adapter_id: adapter_id.to_string(),
             name: name.to_string(),
             package_name: self.plugin_id.clone(),
-        }.into();
+        }
+        .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json) {
+            Ok(json) => match client.send(json).await {
                 Ok(_) => Ok(Adapter {
                     plugin_id: self.plugin_id.clone(),
                     adapter_id: adapter_id.to_string(),
@@ -37,13 +40,14 @@ impl Plugin {
         }
     }
 
-    pub fn unload(&self, client: &mut Client) -> Result<(), String> {
+    pub async fn unload(&self, client: &mut Client) -> Result<(), String> {
         let message: Message = PluginUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
-        }.into();
+        }
+        .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json) {
+            Ok(json) => match client.send(json).await {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
             },

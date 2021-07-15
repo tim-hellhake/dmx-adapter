@@ -59,7 +59,7 @@ impl DmxDevice {
         };
     }
 
-    pub fn update(
+    pub async fn update(
         &mut self,
         client: &mut Client,
         device: &mut device::Device,
@@ -74,7 +74,10 @@ impl DmxDevice {
                     property.description.title, self.description.title, value
                 );
                 property.update(player, value);
-                match device.update_property(client, property.description.clone()) {
+                match device
+                    .update_property(client, property.description.clone())
+                    .await
+                {
                     Ok(()) => {}
                     Err(err) => println!("Could not update device: {}", err),
                 };

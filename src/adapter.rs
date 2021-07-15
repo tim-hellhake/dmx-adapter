@@ -25,7 +25,7 @@ impl DmxAdapter {
         }
     }
 
-    pub fn init(
+    pub async fn init(
         &mut self,
         client: &mut Client,
         adapter: &Adapter,
@@ -42,7 +42,10 @@ impl DmxAdapter {
 
                     let dmx_device = DmxDevice::new(device_config);
 
-                    match adapter.add_device(client, dmx_device.description.clone()) {
+                    match adapter
+                        .add_device(client, dmx_device.description.clone())
+                        .await
+                    {
                         Ok(gateway_device) => {
                             let id = dmx_device.description.id.clone();
                             self.devices
@@ -57,7 +60,7 @@ impl DmxAdapter {
         }
     }
 
-    pub fn update(
+    pub async fn update(
         &mut self,
         client: &mut Client,
         device_id: &String,
@@ -66,7 +69,9 @@ impl DmxAdapter {
     ) {
         match self.devices.get_mut(device_id) {
             Some((dmx_device, device)) => {
-                dmx_device.update(client, device, &self.player, property_name, value);
+                dmx_device
+                    .update(client, device, &self.player, property_name, value)
+                    .await;
             }
             None => println!("Cannot find device '{}'", device_id),
         }
