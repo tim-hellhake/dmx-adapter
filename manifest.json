@@ -3,14 +3,14 @@
   "id": "dmx-adapter",
   "name": "Dmx",
   "short_name": "Dmx",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Connect your DMX devices",
   "homepage_url": "https://github.com/tim-hellhake/dmx-adapter#readme",
   "license": "MPL-2.0",
   "author": "Tim Hellhake",
   "gateway_specific_settings": {
     "webthings": {
-      "exec": "{path}/dmx-adapter {path}",
+      "exec": "/home/tim/mozilla/addons/dmx-adapter/target/debug/dmx-adapter {path}",
       "strict_min_version": "1.0.0",
       "strict_max_version": "*",
       "primary_type": "adapter"
