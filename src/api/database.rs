@@ -49,7 +49,7 @@ pub fn save_string(s: String) {
 fn open() -> Connection {
     let mut path = dirs::home_dir().expect("Could not locate home directory");
 
-    path.push(".mozilla-iot");
+    path.push(".webthings");
     path.push("config");
     path.push("db.sqlite3");
 
