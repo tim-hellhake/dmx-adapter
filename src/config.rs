@@ -5,6 +5,7 @@
  */
 use crate::api::database;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -38,8 +39,8 @@ pub struct Property {
     pub address: u8,
 }
 
-pub fn load() -> Config {
-    let json = database::load_string();
+pub fn load(path: PathBuf) -> Config {
+    let json = database::load_string(path);
     let config: Config = serde_json::from_str(json.as_str()).expect("Could not parse config");
     return config;
 }
@@ -64,7 +65,7 @@ pub fn generate_ids(config: &mut Config) {
     }
 }
 
-pub fn save(config: &Config) {
+pub fn save(path: PathBuf, config: &Config) {
     let json = serde_json::to_string(config).expect("Could not serialize config");
-    database::save_string(json);
+    database::save_string(path, json);
 }

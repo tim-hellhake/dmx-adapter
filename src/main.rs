@@ -6,6 +6,7 @@
 use crate::adapter::DmxAdapter;
 use crate::api::client::Client;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use url::Url;
 use webthings_gateway_ipc_types::{
     AdapterUnloadRequest, DeviceSetPropertyCommand, Message as IPCMessage, PluginUnloadRequest,
@@ -37,10 +38,11 @@ async fn main() {
             None => {}
             Some(result) => match result {
                 Ok(message) => match message {
-                    IPCMessage::PluginRegisterResponse(_) => {
-                        let mut conf = config::load();
+                    IPCMessage::PluginRegisterResponse(msg) => {
+                        let config_path = PathBuf::from(msg.data.user_profile.config_dir);
+                        let mut conf = config::load(config_path.clone());
                         config::generate_ids(&mut conf);
-                        config::save(&conf);
+                        config::save(config_path, &conf);
 
                         println!("Plugin registered");
 

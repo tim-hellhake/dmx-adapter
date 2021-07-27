@@ -5,11 +5,11 @@
  */
 use sqlite::{Connection, Value};
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-pub fn load_string() -> String {
+pub fn load_string(path: PathBuf) -> String {
     let key = key();
-    let connection = open();
+    let connection = open(path);
 
     let mut cursor = connection
         .prepare("SELECT value FROM settings WHERE key = ?")
@@ -31,9 +31,9 @@ pub fn load_string() -> String {
         .to_string();
 }
 
-pub fn save_string(s: String) {
+pub fn save_string(path: PathBuf, s: String) {
     let key = key();
-    let connection = open();
+    let connection = open(path);
 
     let mut statement = connection
         .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
@@ -46,11 +46,7 @@ pub fn save_string(s: String) {
     statement.next().expect("Could not save config");
 }
 
-fn open() -> Connection {
-    let mut path = dirs::home_dir().expect("Could not locate home directory");
-
-    path.push(".webthings");
-    path.push("config");
+fn open(mut path: PathBuf) -> Connection {
     path.push("db.sqlite3");
 
     sqlite::open(path).expect("Could not open database")
