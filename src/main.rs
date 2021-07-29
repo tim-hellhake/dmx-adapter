@@ -5,6 +5,8 @@
  */
 use crate::adapter::DmxAdapter;
 use crate::api::client::Client;
+use crate::api::database::Database;
+use crate::config::Config;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use url::Url;
@@ -40,9 +42,10 @@ async fn main() {
                 Ok(message) => match message {
                     IPCMessage::PluginRegisterResponse(msg) => {
                         let config_path = PathBuf::from(msg.data.user_profile.config_dir);
-                        let mut conf = config::load(config_path.clone());
+                        let database = Database::new(config_path);
+                        let mut conf: Config = database.load_config();
                         config::generate_ids(&mut conf);
-                        config::save(config_path, &conf);
+                        database.save_config(&conf);
 
                         println!("Plugin registered");
 
