@@ -42,7 +42,7 @@
               },
               "serialPort": {
                 "type": "string",
-                "title": "The serial port of the adapter"
+                "title": "The serial port of the adapter (e.g. /dev/ttyUSB0 or /dev/ttyACM0)"
               },
               "devices": {
                 "type": "array",
