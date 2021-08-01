@@ -22,8 +22,8 @@ impl Plugin {
     ) -> Result<Adapter, String> {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
-            adapter_id: adapter_id.to_string(),
-            name: name.to_string(),
+            adapter_id: adapter_id.to_owned(),
+            name: name.to_owned(),
             package_name: self.plugin_id.clone(),
         }
         .into();
@@ -32,7 +32,7 @@ impl Plugin {
             Ok(json) => match client.send(json).await {
                 Ok(_) => Ok(Adapter {
                     plugin_id: self.plugin_id.clone(),
-                    adapter_id: adapter_id.to_string(),
+                    adapter_id: adapter_id.to_owned(),
                 }),
                 Err(err) => Err(err.to_string()),
             },

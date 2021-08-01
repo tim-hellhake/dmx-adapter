@@ -53,14 +53,14 @@ impl Client {
 
     pub async fn register_plugin(&mut self, plugin_id: &str) -> Result<Plugin, String> {
         let message: IPCMessage = PluginRegisterRequestMessageData {
-            plugin_id: plugin_id.to_string(),
+            plugin_id: plugin_id.to_owned(),
         }
         .into();
 
         match serde_json::to_string(&message) {
             Ok(json) => match self.send(json).await {
                 Ok(_) => Ok(Plugin {
-                    plugin_id: plugin_id.to_string(),
+                    plugin_id: plugin_id.to_owned(),
                 }),
                 Err(err) => Err(err.to_string()),
             },

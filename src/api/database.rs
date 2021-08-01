@@ -50,7 +50,7 @@ impl Database {
         return row[0]
             .as_string()
             .expect("Value row is not a string")
-            .to_string();
+            .to_owned();
     }
 
     pub fn save_config<T>(&self, t: &T)
