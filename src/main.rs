@@ -44,7 +44,7 @@ async fn main() {
                         let config_path = PathBuf::from(msg.data.user_profile.config_dir);
                         let database = Database::new(config_path);
                         let mut conf: Config = database.load_config();
-                        config::generate_ids(&mut conf);
+                        conf.generate_ids();
                         database.save_config(&conf);
 
                         println!("Plugin registered");

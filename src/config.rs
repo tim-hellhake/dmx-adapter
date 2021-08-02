@@ -37,22 +37,42 @@ pub struct Property {
     pub address: u8,
 }
 
-pub fn generate_ids(config: &mut Config) {
-    for adapter in &mut config.adapters {
-        if adapter.id.is_none() {
-            adapter.id = Some(String::from(Uuid::new_v4().to_string()));
+impl Config {
+    pub fn generate_ids(&mut self) {
+        for adapter in &mut self.adapters {
+            adapter.generate_ids();
+        }
+    }
+}
+
+impl Adapter {
+    pub fn generate_ids(&mut self) {
+        if self.id.is_none() {
+            self.id = Some(String::from(Uuid::new_v4().to_string()));
         }
 
-        for device in &mut adapter.devices {
-            if device.id.is_none() {
-                device.id = Some(String::from(Uuid::new_v4().to_string()));
-            }
+        for device in &mut self.devices {
+            device.generate_ids();
+        }
+    }
+}
 
-            for property in &mut device.properties {
-                if property.id.is_none() {
-                    property.id = Some(String::from(Uuid::new_v4().to_string()));
-                }
-            }
+impl Device {
+    pub fn generate_ids(&mut self) {
+        if self.id.is_none() {
+            self.id = Some(String::from(Uuid::new_v4().to_string()));
+        }
+
+        for property in &mut self.properties {
+            property.generate_ids();
+        }
+    }
+}
+
+impl Property {
+    pub fn generate_ids(&mut self) {
+        if self.id.is_none() {
+            self.id = Some(String::from(Uuid::new_v4().to_string()));
         }
     }
 }
