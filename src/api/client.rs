@@ -33,6 +33,16 @@ impl Client {
         }
     }
 
+    pub async fn send_message(&mut self, msg: IPCMessage) -> Result<(), String> {
+        match serde_json::to_string(&msg) {
+            Ok(json) => match self.send(json).await {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err.to_string()),
+            },
+            Err(err) => Err(err.to_string()),
+        }
+    }
+
     pub async fn send(&mut self, msg: String) -> Result<(), WebSocketError> {
         return self.sink.send(Message::Text(msg.into())).await;
     }

@@ -49,12 +49,6 @@ impl Adapter {
         }
         .into();
 
-        match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json).await {
-                Ok(_) => Ok(()),
-                Err(err) => Err(err.to_string()),
-            },
-            Err(err) => Err(err.to_string()),
-        }
+        client.send_message(message).await
     }
 }
