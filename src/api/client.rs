@@ -5,7 +5,9 @@
  */
 use futures::prelude::*;
 use futures::stream::SplitSink;
+use std::sync::Arc;
 use tokio::net::TcpStream;
+use tokio::sync::Mutex;
 use tokio_tungstenite::{tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
 use tungstenite::error::Error as WebSocketError;
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterRequestMessageData};
@@ -35,7 +37,7 @@ impl Client {
         return self.sink.send(Message::Text(msg.into())).await;
     }
 
-    pub async fn register_plugin(&mut self, plugin_id: &str) -> Result<Plugin, String> {
+    pub async fn register_plugin(mut self, plugin_id: &str) -> Result<Plugin, String> {
         let message: IPCMessage = PluginRegisterRequestMessageData {
             plugin_id: plugin_id.to_owned(),
         }
@@ -45,6 +47,7 @@ impl Client {
             Ok(json) => match self.send(json).await {
                 Ok(_) => Ok(Plugin {
                     plugin_id: plugin_id.to_owned(),
+                    client: Arc::new(Mutex::new(self)),
                 }),
                 Err(err) => Err(err.to_string()),
             },

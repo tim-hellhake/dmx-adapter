@@ -5,21 +5,19 @@
  */
 use crate::api::adapter::Adapter;
 use crate::api::client::Client;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{
     AdapterAddedNotificationMessageData, Message, PluginUnloadResponseMessageData,
 };
 
 pub struct Plugin {
     pub plugin_id: String,
+    pub client: Arc<Mutex<Client>>,
 }
 
 impl Plugin {
-    pub async fn create_adapter(
-        &self,
-        client: &mut Client,
-        adapter_id: &str,
-        name: &str,
-    ) -> Result<Adapter, String> {
+    pub async fn create_adapter(&self, adapter_id: &str, name: &str) -> Result<Adapter, String> {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: adapter_id.to_owned(),
@@ -29,8 +27,9 @@ impl Plugin {
         .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json).await {
+            Ok(json) => match self.client.lock().await.send(json).await {
                 Ok(_) => Ok(Adapter {
+                    client: self.client.clone(),
                     plugin_id: self.plugin_id.clone(),
                     adapter_id: adapter_id.to_owned(),
                 }),
@@ -40,12 +39,12 @@ impl Plugin {
         }
     }
 
-    pub async fn unload(&self, client: &mut Client) -> Result<(), String> {
+    pub async fn unload(&self) -> Result<(), String> {
         let message: Message = PluginUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
         }
         .into();
 
-        client.send_message(message).await
+        self.client.lock().await.send_message(message).await
     }
 }

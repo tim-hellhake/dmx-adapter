@@ -5,36 +5,34 @@
  */
 use crate::api::client::Client;
 use crate::api::device;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{
     AdapterUnloadResponseMessageData, Device, DeviceAddedNotificationMessageData, Message,
 };
 
 pub struct Adapter {
+    pub client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
 }
 
 impl Adapter {
-    pub async fn add_device(
-        &self,
-        client: &mut Client,
-        device_description: Device,
-    ) -> Result<device::Device, String> {
-        let device_id = device_description.id.clone();
-
+    pub async fn add_device(&self, device_description: Device) -> Result<device::Device, String> {
         let message: Message = DeviceAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
-            device: device_description,
+            device: device_description.clone(),
         }
         .into();
 
         match serde_json::to_string(&message) {
-            Ok(json) => match client.send(json).await {
+            Ok(json) => match self.client.lock().await.send(json).await {
                 Ok(_) => Ok(device::Device {
+                    client: self.client.clone(),
                     plugin_id: self.plugin_id.clone(),
                     adapter_id: self.adapter_id.clone(),
-                    device_id,
+                    description: device_description,
                 }),
                 Err(err) => Err(err.to_string()),
             },
@@ -42,13 +40,13 @@ impl Adapter {
         }
     }
 
-    pub async fn unload(&self, client: &mut Client) -> Result<(), String> {
+    pub async fn unload(&self) -> Result<(), String> {
         let message: Message = AdapterUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
         }
         .into();
 
-        client.send_message(message).await
+        self.client.lock().await.send_message(message).await
     }
 }

@@ -33,7 +33,7 @@ async fn main() {
     match connect_async(Url::parse("ws://localhost:9500").expect("Could not parse url")).await {
         Ok((socket, _)) => {
             let (sink, mut stream) = socket.split();
-            let mut client = Client::new(sink);
+            let client = Client::new(sink);
 
             let plugin = client
                 .register_plugin("dmx-adapter")
@@ -47,8 +47,7 @@ async fn main() {
                     None => {}
                     Some(result) => match result {
                         Ok(message) => {
-                            match handle_message(&mut client, &plugin, &mut adapters, message).await
-                            {
+                            match handle_message(&plugin, &mut adapters, message).await {
                                 Ok(MessageResult::Continue) => {}
                                 Ok(MessageResult::Terminate) => {
                                     break;
@@ -89,7 +88,6 @@ enum MessageResult {
 }
 
 async fn handle_message(
-    mut client: &mut Client,
     plugin: &Plugin,
     adapters: &mut HashMap<String, (DmxAdapter, Adapter)>,
     message: IPCMessage,
@@ -118,12 +116,12 @@ async fn handle_message(
                 let mut dmx_adapter = DmxAdapter::new();
 
                 let adapter = plugin
-                    .create_adapter(&mut client, &id, &title)
+                    .create_adapter(&id, &title)
                     .await
                     .expect("Could not create adapter");
 
                 dmx_adapter
-                    .init(&mut client, &adapter, adapter_config)
+                    .init(&adapter, adapter_config)
                     .await
                     .expect("Could not initialize adapter");
 
@@ -139,10 +137,9 @@ async fn handle_message(
             Some((dmx_adapter, _)) => {
                 dmx_adapter
                     .update(
-                        &mut client,
                         &message.device_id,
                         &message.property_name,
-                        &message.property_value,
+                        message.property_value,
                     )
                     .await;
 
@@ -160,7 +157,7 @@ async fn handle_message(
             );
 
             match adapters.get_mut(&message.adapter_id) {
-                Some((_, adapter)) => match adapter.unload(&mut client).await {
+                Some((_, adapter)) => match adapter.unload().await {
                     Ok(_) => Ok(MessageResult::Continue),
                     Err(msg) => Err(format!("Could not send unload response: {}", msg)),
                 },
@@ -173,7 +170,7 @@ async fn handle_message(
         }) => {
             println!("Received request to unload plugin '{}'", message.plugin_id);
 
-            match plugin.unload(&mut client).await {
+            match plugin.unload().await {
                 Ok(_) => Ok(MessageResult::Terminate),
                 Err(msg) => Err(format!("Could not send unload response: {}", msg)),
             }

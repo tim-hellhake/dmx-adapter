@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::adapter::Adapter;
-use crate::api::client::Client;
 use crate::api::device::Device;
 use crate::config;
 use crate::device::DmxDevice;
@@ -27,7 +26,6 @@ impl DmxAdapter {
 
     pub async fn init(
         &mut self,
-        client: &mut Client,
         adapter: &Adapter,
         adapter_config: config::Adapter,
     ) -> Result<(), String> {
@@ -42,10 +40,7 @@ impl DmxAdapter {
 
                     let dmx_device = DmxDevice::new(device_config);
 
-                    match adapter
-                        .add_device(client, dmx_device.description.clone())
-                        .await
-                    {
+                    match adapter.add_device(dmx_device.description.clone()).await {
                         Ok(gateway_device) => {
                             let id = dmx_device.description.id.clone();
                             self.devices
@@ -60,17 +55,11 @@ impl DmxAdapter {
         }
     }
 
-    pub async fn update(
-        &mut self,
-        client: &mut Client,
-        device_id: &String,
-        property_name: &String,
-        value: &Value,
-    ) {
+    pub async fn update(&mut self, device_id: &String, property_name: &String, value: Value) {
         match self.devices.get_mut(device_id) {
             Some((dmx_device, device)) => {
                 dmx_device
-                    .update(client, device, &self.player, property_name, value)
+                    .update(device, &self.player, property_name, value)
                     .await;
             }
             None => println!("Cannot find device '{}'", device_id),

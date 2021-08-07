@@ -3,7 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::client::Client;
 use crate::api::device;
 use crate::config;
 use crate::player::Player;
@@ -61,11 +60,10 @@ impl DmxDevice {
 
     pub async fn update(
         &mut self,
-        client: &mut Client,
         device: &mut device::Device,
         player: &Player,
         property_name: &str,
-        value: &Value,
+        value: Value,
     ) {
         match self.properties.get_mut(property_name) {
             Some(property) => {
@@ -73,11 +71,8 @@ impl DmxDevice {
                     "Property '{:?}' in '{:?}' changed to {}",
                     property.description.title, self.description.title, value
                 );
-                property.update(player, value);
-                match device
-                    .update_property(client, property.description.clone())
-                    .await
-                {
+                property.update(player, &value);
+                match device.set_property_value(property_name, value).await {
                     Ok(()) => {}
                     Err(err) => println!("Could not update device: {}", err),
                 };

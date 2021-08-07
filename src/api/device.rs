@@ -4,30 +4,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::client::Client;
+use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{
-    DevicePropertyChangedNotificationMessageData, Message, Property,
+    Device as DeviceDescription, DevicePropertyChangedNotificationMessageData, Message,
 };
 
 pub struct Device {
+    pub client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
-    pub device_id: String,
+    pub description: DeviceDescription,
 }
 
 impl Device {
-    pub async fn update_property(
-        &self,
-        client: &mut Client,
-        property_description: Property,
-    ) -> Result<(), String> {
-        let message: Message = DevicePropertyChangedNotificationMessageData {
-            plugin_id: self.plugin_id.clone(),
-            adapter_id: self.adapter_id.clone(),
-            device_id: self.device_id.clone(),
-            property: property_description,
-        }
-        .into();
+    pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), String> {
+        match &mut self.description.properties {
+            Some(properties) => match properties.get_mut(name) {
+                Some(property) => {
+                    property.value = Some(value);
 
-        client.send_message(message).await
+                    let message: Message = DevicePropertyChangedNotificationMessageData {
+                        plugin_id: self.plugin_id.clone(),
+                        adapter_id: self.adapter_id.clone(),
+                        device_id: self.description.id.clone(),
+                        property: property.clone(),
+                    }
+                    .into();
+
+                    self.client.lock().await.send_message(message).await
+                }
+                None => Err(format!(
+                    "No property called {} found in {}",
+                    name, self.description.id
+                )),
+            },
+            None => Err(format!("Device {} has no properties", self.description.id)),
+        }
     }
 }
