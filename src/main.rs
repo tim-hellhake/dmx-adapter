@@ -9,12 +9,16 @@ use crate::api::client::Client;
 use crate::api::database::Database;
 use crate::api::plugin::Plugin;
 use crate::config::Config;
+use futures::prelude::*;
+use futures::stream::SplitStream;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::str::FromStr;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webthings_gateway_ipc_types::{
-    AdapterUnloadRequest, DeviceSetPropertyCommand, Message as IPCMessage, Message,
-    PluginUnloadRequest,
+    AdapterUnloadRequest, DeviceSetPropertyCommand, Message as IPCMessage, PluginUnloadRequest,
 };
 
 mod adapter;
@@ -26,37 +30,57 @@ mod property;
 
 #[tokio::main]
 async fn main() {
-    let mut client =
-        Client::connect(Url::parse("ws://localhost:9500").expect("Could not parse url"))
-            .await
-            .expect("Could not connect to gateway");
+    match connect_async(Url::parse("ws://localhost:9500").expect("Could not parse url")).await {
+        Ok((socket, _)) => {
+            let (sink, mut stream) = socket.split();
+            let mut client = Client::new(sink);
 
-    let plugin = client
-        .register_plugin("dmx-adapter")
-        .await
-        .expect("Could not register plugin");
+            let plugin = client
+                .register_plugin("dmx-adapter")
+                .await
+                .expect("Could not register plugin");
 
-    let mut adapters = HashMap::new();
+            let mut adapters = HashMap::new();
 
-    loop {
-        match client.read().await {
-            None => {}
-            Some(result) => match result {
-                Ok(message) => {
-                    match handle_message(&mut client, &plugin, &mut adapters, message).await {
-                        Ok(MessageResult::Continue) => {}
-                        Ok(MessageResult::Terminate) => {
-                            break;
+            loop {
+                match read(&mut stream).await {
+                    None => {}
+                    Some(result) => match result {
+                        Ok(message) => {
+                            match handle_message(&mut client, &plugin, &mut adapters, message).await
+                            {
+                                Ok(MessageResult::Continue) => {}
+                                Ok(MessageResult::Terminate) => {
+                                    break;
+                                }
+                                Err(err) => eprintln!("Failed not handle message: {}", err),
+                            }
                         }
-                        Err(err) => eprintln!("Failed not handle message: {}", err),
-                    }
+                        Err(err) => println!("Could not read message: {}", err),
+                    },
                 }
-                Err(err) => println!("Could not read message: {}", err),
-            },
+            }
         }
+        Err(err) => eprintln!("Could not connect to gateway: {:?}", err),
     }
 
     println!("Exiting adapter");
+}
+
+async fn read(
+    stream: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+) -> Option<Result<IPCMessage, String>> {
+    stream
+        .next()
+        .await
+        .map(|result| match result {
+            Ok(msg) => match msg.to_text() {
+                Ok(json) => IPCMessage::from_str(json).map_err(|err| format!("{}", err)),
+                Err(err) => Err(err.to_string()),
+            },
+            Err(err) => Err(err.to_string()),
+        })
+        .into()
 }
 
 enum MessageResult {
@@ -68,7 +92,7 @@ async fn handle_message(
     mut client: &mut Client,
     plugin: &Plugin,
     adapters: &mut HashMap<String, (DmxAdapter, Adapter)>,
-    message: Message,
+    message: IPCMessage,
 ) -> Result<MessageResult, String> {
     match message {
         IPCMessage::PluginRegisterResponse(msg) => {
