@@ -14,9 +14,9 @@ pub struct Player {
 
 impl Player {
     pub fn new() -> Player {
-        return Self {
+        Self {
             buffer: Arc::new(Mutex::new(vec![0; 512])),
-        };
+        }
     }
 
     pub fn start(&self, serial_port: &str) -> Result<(), Error> {
@@ -49,7 +49,7 @@ impl Player {
                 for i in 0..values.len() {
                     buffer[i + offset] = values[i];
                 }
-                return Ok(());
+                Ok(())
             }
             Err(err) => Err(err.to_string()),
         }

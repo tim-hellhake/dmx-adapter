@@ -48,7 +48,7 @@ impl Config {
 impl Adapter {
     pub fn generate_ids(&mut self) {
         if self.id.is_none() {
-            self.id = Some(String::from(Uuid::new_v4().to_string()));
+            self.id = Some(Uuid::new_v4().to_string());
         }
 
         for device in &mut self.devices {
@@ -60,7 +60,7 @@ impl Adapter {
 impl Device {
     pub fn generate_ids(&mut self) {
         if self.id.is_none() {
-            self.id = Some(String::from(Uuid::new_v4().to_string()));
+            self.id = Some(Uuid::new_v4().to_string());
         }
 
         for property in &mut self.properties {
@@ -72,7 +72,7 @@ impl Device {
 impl Property {
     pub fn generate_ids(&mut self) {
         if self.id.is_none() {
-            self.id = Some(String::from(Uuid::new_v4().to_string()));
+            self.id = Some(Uuid::new_v4().to_string());
         }
     }
 }

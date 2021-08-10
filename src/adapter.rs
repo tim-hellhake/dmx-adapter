@@ -29,7 +29,7 @@ impl DmxAdapter {
         adapter: &Adapter,
         adapter_config: config::Adapter,
     ) -> Result<(), String> {
-        match self.player.start(&adapter_config.serial_port.as_str()) {
+        match self.player.start(adapter_config.serial_port.as_str()) {
             Ok(()) => {
                 for device_config in adapter_config.devices {
                     println!(
@@ -49,13 +49,13 @@ impl DmxAdapter {
                         Err(err) => println!("Could not create device: {}", err),
                     }
                 }
-                return Ok(());
+                Ok(())
             }
             Err(err) => Err(err.to_string()),
         }
     }
 
-    pub async fn update(&mut self, device_id: &String, property_name: &String, value: Value) {
+    pub async fn update(&mut self, device_id: &str, property_name: &str, value: Value) {
         match self.devices.get_mut(device_id) {
             Some((dmx_device, device)) => {
                 dmx_device

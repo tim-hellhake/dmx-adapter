@@ -69,17 +69,13 @@ async fn main() {
 async fn read(
     stream: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 ) -> Option<Result<IPCMessage, String>> {
-    stream
-        .next()
-        .await
-        .map(|result| match result {
-            Ok(msg) => match msg.to_text() {
-                Ok(json) => IPCMessage::from_str(json).map_err(|err| format!("{}", err)),
-                Err(err) => Err(err.to_string()),
-            },
+    stream.next().await.map(|result| match result {
+        Ok(msg) => match msg.to_text() {
+            Ok(json) => IPCMessage::from_str(json).map_err(|err| format!("{}", err)),
             Err(err) => Err(err.to_string()),
-        })
-        .into()
+        },
+        Err(err) => Err(err.to_string()),
+    })
 }
 
 enum MessageResult {

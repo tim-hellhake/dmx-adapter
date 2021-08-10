@@ -52,10 +52,10 @@ impl DmxDevice {
             credentials_required: None,
         };
 
-        return Self {
+        Self {
             description,
             properties,
-        };
+        }
     }
 
     pub async fn update(
