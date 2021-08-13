@@ -1,6 +1,6 @@
 [package]
 name = "dmx-adapter"
-version = "0.1.9"
+version = "0.1.10"
 authors = ["tim"]
 edition = "2018"
 
