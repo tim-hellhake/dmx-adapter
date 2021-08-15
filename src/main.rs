@@ -26,7 +26,6 @@ mod api;
 mod config;
 mod device;
 mod player;
-mod property;
 
 #[tokio::main]
 async fn main() {
@@ -131,13 +130,19 @@ async fn handle_message(
             data: message,
         }) => match adapters.get_mut(&message.adapter_id) {
             Some((dmx_adapter, _)) => {
-                dmx_adapter
+                if let Err(err) = dmx_adapter
                     .update(
                         &message.device_id,
                         &message.property_name,
                         message.property_value,
                     )
-                    .await;
+                    .await
+                {
+                    eprintln!(
+                        "Failed to update property {} of {}: {}",
+                        message.property_name, message.device_id, err
+                    );
+                }
 
                 Ok(MessageResult::Continue)
             }

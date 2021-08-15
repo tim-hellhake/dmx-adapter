@@ -55,14 +55,19 @@ impl DmxAdapter {
         }
     }
 
-    pub async fn update(&mut self, device_id: &str, property_name: &str, value: Value) {
-        match self.devices.get_mut(device_id) {
-            Some((dmx_device, device)) => {
-                dmx_device
-                    .update(device, &self.player, property_name, value)
-                    .await;
-            }
-            None => println!("Cannot find device '{}'", device_id),
-        }
+    pub async fn update(
+        &mut self,
+        device_id: &str,
+        property_name: &str,
+        value: Value,
+    ) -> Result<(), String> {
+        let (dmx_device, device) = self
+            .devices
+            .get_mut(device_id)
+            .ok_or(format!("Cannot find device '{}'", device_id))?;
+
+        dmx_device
+            .update(device, &self.player, property_name, value)
+            .await
     }
 }
