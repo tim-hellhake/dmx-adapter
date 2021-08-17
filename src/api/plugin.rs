@@ -26,16 +26,13 @@ impl Plugin {
         }
         .into();
 
-        match serde_json::to_string(&message) {
-            Ok(json) => match self.client.lock().await.send(json).await {
-                Ok(_) => Ok(Adapter {
-                    client: self.client.clone(),
-                    plugin_id: self.plugin_id.clone(),
-                    adapter_id: adapter_id.to_owned(),
-                }),
-                Err(err) => Err(err.to_string()),
-            },
-            Err(err) => Err(err.to_string()),
+        match self.client.lock().await.send_message(message).await {
+            Ok(_) => Ok(Adapter {
+                client: self.client.clone(),
+                plugin_id: self.plugin_id.clone(),
+                adapter_id: adapter_id.to_owned(),
+            }),
+            Err(err) => Err(err),
         }
     }
 

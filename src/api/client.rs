@@ -43,15 +43,12 @@ impl Client {
         }
         .into();
 
-        match serde_json::to_string(&message) {
-            Ok(json) => match self.send(json).await {
-                Ok(_) => Ok(Plugin {
-                    plugin_id: plugin_id.to_owned(),
-                    client: Arc::new(Mutex::new(self)),
-                }),
-                Err(err) => Err(err.to_string()),
-            },
-            Err(err) => Err(err.to_string()),
+        match self.send_message(message).await {
+            Ok(_) => Ok(Plugin {
+                plugin_id: plugin_id.to_owned(),
+                client: Arc::new(Mutex::new(self)),
+            }),
+            Err(err) => Err(err),
         }
     }
 }
