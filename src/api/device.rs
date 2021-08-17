@@ -33,7 +33,7 @@ impl Device {
                     }
                     .into();
 
-                    self.client.lock().await.send_message(message).await
+                    self.client.lock().await.send_message(&message).await
                 }
                 None => Err(format!(
                     "No property called {} found in {}",

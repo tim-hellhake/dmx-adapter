@@ -23,8 +23,8 @@ impl Client {
         Self { sink }
     }
 
-    pub async fn send_message(&mut self, msg: IPCMessage) -> Result<(), String> {
-        match serde_json::to_string(&msg) {
+    pub async fn send_message(&mut self, msg: &IPCMessage) -> Result<(), String> {
+        match serde_json::to_string(msg) {
             Ok(json) => match self.send(json).await {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
@@ -43,7 +43,7 @@ impl Client {
         }
         .into();
 
-        match self.send_message(message).await {
+        match self.send_message(&message).await {
             Ok(_) => Ok(Plugin {
                 plugin_id: plugin_id.to_owned(),
                 client: Arc::new(Mutex::new(self)),

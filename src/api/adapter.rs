@@ -26,7 +26,7 @@ impl Adapter {
         }
         .into();
 
-        match self.client.lock().await.send_message(message).await {
+        match self.client.lock().await.send_message(&message).await {
             Ok(_) => Ok(device::Device {
                 client: self.client.clone(),
                 plugin_id: self.plugin_id.clone(),
@@ -44,6 +44,6 @@ impl Adapter {
         }
         .into();
 
-        self.client.lock().await.send_message(message).await
+        self.client.lock().await.send_message(&message).await
     }
 }
