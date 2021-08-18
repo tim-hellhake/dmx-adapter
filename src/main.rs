@@ -29,50 +29,58 @@ mod player;
 
 #[tokio::main]
 async fn main() {
-    match connect_async(Url::parse("ws://localhost:9500").expect("Could not parse url")).await {
-        Ok((socket, _)) => {
-            let (sink, mut stream) = socket.split();
-            let client = Client::new(sink);
+    run().await.expect("Could not start adapter");
+    println!("Exiting adapter");
+}
 
-            let plugin = client
-                .register_plugin("dmx-adapter")
-                .await
-                .expect("Could not register plugin");
+async fn run() -> Result<(), String> {
+    let url =
+        Url::parse("ws://localhost:9500").map_err(|err| format!("Could not parse url: {}", err))?;
 
-            let mut adapters = HashMap::new();
+    let (socket, _) = connect_async(url)
+        .await
+        .map_err(|err| format!("Could not connect to gateway: {:?}", err))?;
 
-            loop {
-                match read(&mut stream).await {
-                    None => {}
-                    Some(result) => match result {
-                        Ok(message) => {
-                            match handle_message(&plugin, &mut adapters, message).await {
-                                Ok(MessageResult::Continue) => {}
-                                Ok(MessageResult::Terminate) => {
-                                    break;
-                                }
-                                Err(err) => eprintln!("Failed not handle message: {}", err),
-                            }
-                        }
-                        Err(err) => println!("Could not read message: {}", err),
-                    },
-                }
-            }
+    let (sink, mut stream) = socket.split();
+    let client = Client::new(sink);
+
+    let plugin = client
+        .register_plugin("dmx-adapter")
+        .await
+        .expect("Could not register plugin");
+
+    let mut adapters = HashMap::new();
+
+    loop {
+        match read(&mut stream).await {
+            None => {}
+            Some(result) => match result {
+                Ok(message) => match handle_message(&plugin, &mut adapters, message).await {
+                    Ok(MessageResult::Continue) => {}
+                    Ok(MessageResult::Terminate) => {
+                        break;
+                    }
+                    Err(err) => eprintln!("Failed not handle message: {}", err),
+                },
+                Err(err) => println!("Could not read message: {}", err),
+            },
         }
-        Err(err) => eprintln!("Could not connect to gateway: {:?}", err),
     }
 
-    println!("Exiting adapter");
+    Ok(())
 }
 
 async fn read(
     stream: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 ) -> Option<Result<IPCMessage, String>> {
     stream.next().await.map(|result| match result {
-        Ok(msg) => match msg.to_text() {
-            Ok(json) => IPCMessage::from_str(json).map_err(|err| format!("{}", err)),
-            Err(err) => Err(err.to_string()),
-        },
+        Ok(msg) => {
+            let json = msg
+                .to_text()
+                .map_err(|err| format!("Could not get text message: {:?}", err))?;
+
+            IPCMessage::from_str(json).map_err(|err| format!("Could not parse message: {:?}", err))
+        }
         Err(err) => Err(err.to_string()),
     })
 }
@@ -128,26 +136,27 @@ async fn handle_message(
         IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand {
             message_type: _,
             data: message,
-        }) => match adapters.get_mut(&message.adapter_id) {
-            Some((dmx_adapter, _)) => {
-                if let Err(err) = dmx_adapter
-                    .update(
-                        &message.device_id,
-                        &message.property_name,
-                        message.property_value,
-                    )
-                    .await
-                {
-                    eprintln!(
-                        "Failed to update property {} of {}: {}",
-                        message.property_name, message.device_id, err
-                    );
-                }
+        }) => {
+            let (dmx_adapter, _) = adapters
+                .get_mut(&message.adapter_id)
+                .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
 
-                Ok(MessageResult::Continue)
-            }
-            None => Err(format!("Cannot find adapter '{}'", message.adapter_id)),
-        },
+            dmx_adapter
+                .update(
+                    &message.device_id,
+                    &message.property_name,
+                    message.property_value.clone(),
+                )
+                .await
+                .map_err(|err| {
+                    format!(
+                        "Failed to update property {} of {}: {}",
+                        message.property_name, message.device_id, err,
+                    )
+                })?;
+
+            Ok(MessageResult::Continue)
+        }
         IPCMessage::AdapterUnloadRequest(AdapterUnloadRequest {
             message_type: _,
             data: message,
@@ -157,13 +166,16 @@ async fn handle_message(
                 message.adapter_id
             );
 
-            match adapters.get_mut(&message.adapter_id) {
-                Some((_, adapter)) => match adapter.unload().await {
-                    Ok(_) => Ok(MessageResult::Continue),
-                    Err(msg) => Err(format!("Could not send unload response: {}", msg)),
-                },
-                None => Err(format!("Cannot find adapter '{}'", message.adapter_id)),
-            }
+            let (_, adapter) = adapters
+                .get_mut(&message.adapter_id)
+                .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+
+            adapter
+                .unload()
+                .await
+                .map_err(|err| format!("Could not send unload response: {}", err))?;
+
+            Ok(MessageResult::Continue)
         }
         IPCMessage::PluginUnloadRequest(PluginUnloadRequest {
             message_type: _,
@@ -171,10 +183,12 @@ async fn handle_message(
         }) => {
             println!("Received request to unload plugin '{}'", message.plugin_id);
 
-            match plugin.unload().await {
-                Ok(_) => Ok(MessageResult::Terminate),
-                Err(msg) => Err(format!("Could not send unload response: {}", msg)),
-            }
+            plugin
+                .unload()
+                .await
+                .map_err(|err| format!("Could not send unload response: {}", err))?;
+
+            Ok(MessageResult::Terminate)
         }
         IPCMessage::DeviceSavedNotification(_) => Ok(MessageResult::Continue),
         msg => Err(format!("Unexpected msg: {:?}", msg)),

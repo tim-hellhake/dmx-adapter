@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use dmx::{self, DmxTransmitter};
-use dmx_serial::Error;
+use dmx_serial::SystemPort;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 
@@ -19,39 +19,44 @@ impl Player {
         }
     }
 
-    pub fn start(&self, serial_port: &str) -> Result<(), Error> {
+    pub fn start(&self, serial_port: &str) -> Result<(), String> {
         let buffer = Arc::clone(&self.buffer);
 
-        match dmx::open_serial(serial_port) {
-            Ok(mut dmx_port) => {
-                thread::spawn(move || loop {
-                    {
-                        match buffer.lock() {
-                            Ok(buffer) => match dmx_port.send_dmx_packet(&(*buffer)[..]) {
-                                Ok(()) => {}
-                                Err(err) => println!("Could not send buffer: {}", err),
-                            },
-                            Err(err) => println!("Could not lock buffer {}", err),
-                        }
-                    }
-                    thread::sleep(time::Duration::from_millis(50));
-                });
+        let mut dmx_port = dmx::open_serial(serial_port)
+            .map_err(|err| format!("Could not open serial port: {}", err))?;
 
-                Ok(())
+        thread::spawn(move || loop {
+            if let Err(err) = Player::send_buffer(&mut dmx_port, &buffer) {
+                println!("Could not send buffer: {}", err);
             }
-            Err(err) => Err(err),
-        }
+            thread::sleep(time::Duration::from_millis(50));
+        });
+
+        Ok(())
+    }
+
+    fn send_buffer(dmx_port: &mut SystemPort, buffer: &Arc<Mutex<Vec<u8>>>) -> Result<(), String> {
+        let buffer = buffer
+            .lock()
+            .map_err(|err| format!("Could not lock buffer : {}", err))?;
+
+        dmx_port
+            .send_dmx_packet(&(*buffer)[..])
+            .map_err(|err| format!("Could not send buffer : {}", err))?;
+
+        Ok(())
     }
 
     pub fn set(&self, offset: usize, values: Vec<u8>) -> Result<(), String> {
-        match self.buffer.lock() {
-            Ok(mut buffer) => {
-                for i in 0..values.len() {
-                    buffer[i + offset] = values[i];
-                }
-                Ok(())
-            }
-            Err(err) => Err(err.to_string()),
+        let mut buffer = self
+            .buffer
+            .lock()
+            .map_err(|err| format!("Could not lock buffer : {}", err))?;
+
+        for i in 0..values.len() {
+            buffer[i + offset] = values[i];
         }
+
+        Ok(())
     }
 }

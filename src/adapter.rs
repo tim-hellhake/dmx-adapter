@@ -29,30 +29,28 @@ impl DmxAdapter {
         adapter: &Adapter,
         adapter_config: config::Adapter,
     ) -> Result<(), String> {
-        match self.player.start(adapter_config.serial_port.as_str()) {
-            Ok(()) => {
-                for device_config in adapter_config.devices {
-                    println!(
-                        "Creating device '{}' ({})",
-                        device_config.title,
-                        device_config.id.as_ref().unwrap_or(&String::from(""))
-                    );
+        self.player.start(adapter_config.serial_port.as_str())?;
 
-                    let dmx_device = DmxDevice::new(device_config);
+        for device_config in adapter_config.devices {
+            println!(
+                "Creating device '{}' ({})",
+                device_config.title,
+                device_config.id.as_ref().unwrap_or(&String::from(""))
+            );
 
-                    match adapter.add_device(dmx_device.description.clone()).await {
-                        Ok(gateway_device) => {
-                            let id = dmx_device.description.id.clone();
-                            self.devices
-                                .insert(id.clone(), (dmx_device, gateway_device));
-                        }
-                        Err(err) => println!("Could not create device: {}", err),
-                    }
+            let dmx_device = DmxDevice::new(device_config);
+
+            match adapter.add_device(dmx_device.description.clone()).await {
+                Ok(gateway_device) => {
+                    let id = dmx_device.description.id.clone();
+                    self.devices
+                        .insert(id.clone(), (dmx_device, gateway_device));
                 }
-                Ok(())
+                Err(err) => println!("Could not create device: {}", err),
             }
-            Err(err) => Err(err.to_string()),
         }
+
+        Ok(())
     }
 
     pub async fn update(

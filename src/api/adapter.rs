@@ -26,15 +26,19 @@ impl Adapter {
         }
         .into();
 
-        match self.client.lock().await.send_message(&message).await {
-            Ok(_) => Ok(device::Device {
-                client: self.client.clone(),
-                plugin_id: self.plugin_id.clone(),
-                adapter_id: self.adapter_id.clone(),
-                description: device_description,
-            }),
-            Err(err) => Err(err),
-        }
+        self.client
+            .lock()
+            .await
+            .send_message(&message)
+            .await
+            .map_err(|err| format!("Could not send json: {:?}", err))?;
+
+        Ok(device::Device {
+            client: self.client.clone(),
+            plugin_id: self.plugin_id.clone(),
+            adapter_id: self.adapter_id.clone(),
+            description: device_description,
+        })
     }
 
     pub async fn unload(&self) -> Result<(), String> {

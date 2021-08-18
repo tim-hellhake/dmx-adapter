@@ -20,26 +20,28 @@ pub struct Device {
 
 impl Device {
     pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), String> {
-        match &mut self.description.properties {
-            Some(properties) => match properties.get_mut(name) {
-                Some(property) => {
-                    property.value = Some(value);
+        let properties = &mut self.description.properties;
 
-                    let message: Message = DevicePropertyChangedNotificationMessageData {
-                        plugin_id: self.plugin_id.clone(),
-                        adapter_id: self.adapter_id.clone(),
-                        device_id: self.description.id.clone(),
-                        property: property.clone(),
-                    }
-                    .into();
+        match properties {
+            Some(properties) => {
+                let id = self.description.id.clone();
 
-                    self.client.lock().await.send_message(&message).await
+                let mut property = properties
+                    .get_mut(name)
+                    .ok_or_else(|| format!("No property called {} found in {}", name, id))?;
+
+                property.value = Some(value);
+
+                let message: Message = DevicePropertyChangedNotificationMessageData {
+                    plugin_id: self.plugin_id.clone(),
+                    adapter_id: self.adapter_id.clone(),
+                    device_id: self.description.id.clone(),
+                    property: property.clone(),
                 }
-                None => Err(format!(
-                    "No property called {} found in {}",
-                    name, self.description.id
-                )),
-            },
+                .into();
+
+                self.client.lock().await.send_message(&message).await
+            }
             None => Err(format!("Device {} has no properties", self.description.id)),
         }
     }

@@ -24,13 +24,12 @@ impl Client {
     }
 
     pub async fn send_message(&mut self, msg: &IPCMessage) -> Result<(), String> {
-        match serde_json::to_string(msg) {
-            Ok(json) => match self.send(json).await {
-                Ok(_) => Ok(()),
-                Err(err) => Err(err.to_string()),
-            },
-            Err(err) => Err(err.to_string()),
-        }
+        let json = serde_json::to_string(msg)
+            .map_err(|err| format!("Could not serialize value: {}", err))?;
+
+        self.send(json)
+            .await
+            .map_err(|err| format!("Could not send json: {:?}", err))
     }
 
     pub async fn send(&mut self, msg: String) -> Result<(), WebSocketError> {
@@ -43,12 +42,11 @@ impl Client {
         }
         .into();
 
-        match self.send_message(&message).await {
-            Ok(_) => Ok(Plugin {
-                plugin_id: plugin_id.to_owned(),
-                client: Arc::new(Mutex::new(self)),
-            }),
-            Err(err) => Err(err),
-        }
+        self.send_message(&message).await?;
+
+        Ok(Plugin {
+            plugin_id: plugin_id.to_owned(),
+            client: Arc::new(Mutex::new(self)),
+        })
     }
 }
