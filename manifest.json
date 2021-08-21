@@ -3,7 +3,7 @@
   "id": "dmx-adapter",
   "name": "Dmx",
   "short_name": "Dmx",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Connect your DMX devices",
   "homepage_url": "https://github.com/tim-hellhake/dmx-adapter#readme",
   "license": "MPL-2.0",
