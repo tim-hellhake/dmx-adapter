@@ -33,7 +33,7 @@ impl Client {
     }
 
     pub async fn send(&mut self, msg: String) -> Result<(), WebSocketError> {
-        return self.sink.send(Message::Text(msg)).await;
+        self.sink.send(Message::Text(msg)).await
     }
 
     pub async fn register_plugin(mut self, plugin_id: &str) -> Result<Plugin, String> {
