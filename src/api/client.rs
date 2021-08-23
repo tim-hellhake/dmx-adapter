@@ -9,9 +9,9 @@ use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
-use tungstenite::error::Error as WebSocketError;
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterRequestMessageData};
 
+use crate::api::api_error::ApiError;
 use crate::api::plugin::Plugin;
 
 pub struct Client {
@@ -23,20 +23,20 @@ impl Client {
         Self { sink }
     }
 
-    pub async fn send_message(&mut self, msg: &IPCMessage) -> Result<(), String> {
-        let json = serde_json::to_string(msg)
-            .map_err(|err| format!("Could not serialize value: {}", err))?;
+    pub async fn send_message(&mut self, msg: &IPCMessage) -> Result<(), ApiError> {
+        let json = serde_json::to_string(msg).map_err(ApiError::Serialization)?;
 
-        self.send(json)
+        self.send(json).await
+    }
+
+    pub async fn send(&mut self, msg: String) -> Result<(), ApiError> {
+        self.sink
+            .send(Message::Text(msg))
             .await
-            .map_err(|err| format!("Could not send json: {:?}", err))
+            .map_err(ApiError::Send)
     }
 
-    pub async fn send(&mut self, msg: String) -> Result<(), WebSocketError> {
-        self.sink.send(Message::Text(msg)).await
-    }
-
-    pub async fn register_plugin(mut self, plugin_id: &str) -> Result<Plugin, String> {
+    pub async fn register_plugin(mut self, plugin_id: &str) -> Result<Plugin, ApiError> {
         let message: IPCMessage = PluginRegisterRequestMessageData {
             plugin_id: plugin_id.to_owned(),
         }

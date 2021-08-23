@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::adapter::Adapter;
+use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -17,7 +18,7 @@ pub struct Plugin {
 }
 
 impl Plugin {
-    pub async fn create_adapter(&self, adapter_id: &str, name: &str) -> Result<Adapter, String> {
+    pub async fn create_adapter(&self, adapter_id: &str, name: &str) -> Result<Adapter, ApiError> {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: adapter_id.to_owned(),
@@ -35,7 +36,7 @@ impl Plugin {
         })
     }
 
-    pub async fn unload(&self) -> Result<(), String> {
+    pub async fn unload(&self) -> Result<(), ApiError> {
         let message: Message = PluginUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
         }

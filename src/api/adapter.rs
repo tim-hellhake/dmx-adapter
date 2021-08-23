@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
+use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use crate::api::device;
 use std::sync::Arc;
@@ -18,7 +19,7 @@ pub struct Adapter {
 }
 
 impl Adapter {
-    pub async fn add_device(&self, device_description: Device) -> Result<device::Device, String> {
+    pub async fn add_device(&self, device_description: Device) -> Result<device::Device, ApiError> {
         let message: Message = DeviceAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
@@ -26,12 +27,7 @@ impl Adapter {
         }
         .into();
 
-        self.client
-            .lock()
-            .await
-            .send_message(&message)
-            .await
-            .map_err(|err| format!("Could not send json: {:?}", err))?;
+        self.client.lock().await.send_message(&message).await?;
 
         Ok(device::Device {
             client: self.client.clone(),
@@ -41,7 +37,7 @@ impl Adapter {
         })
     }
 
-    pub async fn unload(&self) -> Result<(), String> {
+    pub async fn unload(&self) -> Result<(), ApiError> {
         let message: Message = AdapterUnloadResponseMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),

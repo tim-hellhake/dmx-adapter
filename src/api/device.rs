@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
+use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use serde_json::Value;
 use std::sync::Arc;
@@ -19,16 +20,19 @@ pub struct Device {
 }
 
 impl Device {
-    pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), String> {
+    pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), ApiError> {
+        let device_id = self.description.id.clone();
         let properties = &mut self.description.properties;
 
         match properties {
             Some(properties) => {
-                let id = self.description.id.clone();
-
-                let mut property = properties
-                    .get_mut(name)
-                    .ok_or_else(|| format!("No property called {} found in {}", name, id))?;
+                let mut property =
+                    properties
+                        .get_mut(name)
+                        .ok_or_else(|| ApiError::PropertyNotFound {
+                            device_id,
+                            property_name: name.to_owned(),
+                        })?;
 
                 property.value = Some(value);
 
@@ -42,7 +46,10 @@ impl Device {
 
                 self.client.lock().await.send_message(&message).await
             }
-            None => Err(format!("Device {} has no properties", self.description.id)),
+            None => Err(ApiError::PropertyNotFound {
+                device_id,
+                property_name: name.to_owned(),
+            }),
         }
     }
 }
