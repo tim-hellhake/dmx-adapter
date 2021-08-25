@@ -5,18 +5,12 @@
  */
 use crate::adapter::DmxAdapter;
 use crate::api::adapter::Adapter;
-use crate::api::client::Client;
+use crate::api::api_error::ApiError;
 use crate::api::database::Database;
-use crate::api::plugin::Plugin;
+use crate::api::plugin::{connect, Plugin};
 use crate::config::Config;
-use futures::prelude::*;
-use futures::stream::SplitStream;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::str::FromStr;
-use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use url::Url;
 use webthings_gateway_ipc_types::{
     AdapterUnloadRequest, DeviceSetPropertyCommand, Message as IPCMessage, PluginUnloadRequest,
 };
@@ -33,26 +27,12 @@ async fn main() {
     println!("Exiting adapter");
 }
 
-async fn run() -> Result<(), String> {
-    let url =
-        Url::parse("ws://localhost:9500").map_err(|err| format!("Could not parse url: {}", err))?;
-
-    let (socket, _) = connect_async(url)
-        .await
-        .map_err(|err| format!("Could not connect to gateway: {:?}", err))?;
-
-    let (sink, mut stream) = socket.split();
-    let client = Client::new(sink);
-
-    let plugin = client
-        .register_plugin("dmx-adapter")
-        .await
-        .expect("Could not register plugin");
-
+async fn run() -> Result<(), ApiError> {
+    let mut plugin = connect("dmx-adapter").await?;
     let mut adapters = HashMap::new();
 
     loop {
-        match read(&mut stream).await {
+        match plugin.read().await {
             None => {}
             Some(result) => match result {
                 Ok(message) => match handle_message(&plugin, &mut adapters, message).await {
@@ -68,21 +48,6 @@ async fn run() -> Result<(), String> {
     }
 
     Ok(())
-}
-
-async fn read(
-    stream: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-) -> Option<Result<IPCMessage, String>> {
-    stream.next().await.map(|result| match result {
-        Ok(msg) => {
-            let json = msg
-                .to_text()
-                .map_err(|err| format!("Could not get text message: {:?}", err))?;
-
-            IPCMessage::from_str(json).map_err(|err| format!("Could not parse message: {:?}", err))
-        }
-        Err(err) => Err(err.to_string()),
-    })
 }
 
 enum MessageResult {

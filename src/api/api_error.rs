@@ -7,6 +7,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error("Failed to connect to gateway")]
+    Connect(#[source] tungstenite::Error),
+
     #[error("Failed to send message")]
     Send(#[source] tungstenite::Error),
 

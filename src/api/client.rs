@@ -5,14 +5,11 @@
  */
 use futures::prelude::*;
 use futures::stream::SplitSink;
-use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::sync::Mutex;
 use tokio_tungstenite::{tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
-use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterRequestMessageData};
+use webthings_gateway_ipc_types::Message as IPCMessage;
 
 use crate::api::api_error::ApiError;
-use crate::api::plugin::Plugin;
 
 pub struct Client {
     sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
@@ -34,19 +31,5 @@ impl Client {
             .send(Message::Text(msg))
             .await
             .map_err(ApiError::Send)
-    }
-
-    pub async fn register_plugin(mut self, plugin_id: &str) -> Result<Plugin, ApiError> {
-        let message: IPCMessage = PluginRegisterRequestMessageData {
-            plugin_id: plugin_id.to_owned(),
-        }
-        .into();
-
-        self.send_message(&message).await?;
-
-        Ok(Plugin {
-            plugin_id: plugin_id.to_owned(),
-            client: Arc::new(Mutex::new(self)),
-        })
     }
 }
