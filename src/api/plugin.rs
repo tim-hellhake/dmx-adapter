@@ -15,11 +15,11 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
-use webthings_gateway_ipc_types::Message as IPCMessage;
 use webthings_gateway_ipc_types::{
     AdapterAddedNotificationMessageData, Message, PluginRegisterRequestMessageData,
-    PluginUnloadResponseMessageData,
+    PluginUnloadResponseMessageData, Preferences, UserProfile,
 };
+use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
 pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
     let url = Url::parse("ws://localhost:9500").expect("Could not parse url");
@@ -36,12 +36,17 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
 
     client.send_message(&message).await?;
 
-    loop {
+    let PluginRegisterResponseMessageData {
+        gateway_version: _,
+        plugin_id: _,
+        preferences,
+        user_profile,
+    } = loop {
         match read(&mut stream).await {
             None => {}
             Some(result) => match result {
-                Ok(IPCMessage::PluginRegisterResponse(_)) => {
-                    break;
+                Ok(IPCMessage::PluginRegisterResponse(msg)) => {
+                    break msg.data;
                 }
                 Ok(msg) => {
                     eprintln!("Received unexpected message {:?}", msg);
@@ -49,10 +54,12 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
                 Err(err) => println!("Could not read message: {}", err),
             },
         }
-    }
+    };
 
     Ok(Plugin {
         plugin_id: plugin_id.to_owned(),
+        preferences,
+        user_profile,
         client: Arc::new(Mutex::new(client)),
         stream,
     })
@@ -75,6 +82,8 @@ async fn read(
 
 pub struct Plugin {
     pub plugin_id: String,
+    pub preferences: Preferences,
+    pub user_profile: UserProfile,
     pub client: Arc<Mutex<Client>>,
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 }
