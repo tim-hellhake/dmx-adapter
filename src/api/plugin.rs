@@ -84,7 +84,7 @@ pub struct Plugin {
     pub plugin_id: String,
     pub preferences: Preferences,
     pub user_profile: UserProfile,
-    pub client: Arc<Mutex<Client>>,
+    client: Arc<Mutex<Client>>,
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
 }
 
