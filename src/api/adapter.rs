@@ -13,12 +13,20 @@ use webthings_gateway_ipc_types::{
 };
 
 pub struct Adapter {
-    pub client: Arc<Mutex<Client>>,
+    client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
 }
 
 impl Adapter {
+    pub fn new(client: Arc<Mutex<Client>>, plugin_id: String, adapter_id: String) -> Self {
+        Self {
+            client,
+            plugin_id,
+            adapter_id,
+        }
+    }
+
     pub async fn add_device(&self, device_description: Device) -> Result<device::Device, ApiError> {
         let message: Message = DeviceAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
@@ -29,12 +37,12 @@ impl Adapter {
 
         self.client.lock().await.send_message(&message).await?;
 
-        Ok(device::Device {
-            client: self.client.clone(),
-            plugin_id: self.plugin_id.clone(),
-            adapter_id: self.adapter_id.clone(),
-            description: device_description,
-        })
+        Ok(device::Device::new(
+            self.client.clone(),
+            self.plugin_id.clone(),
+            self.adapter_id.clone(),
+            device_description,
+        ))
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {

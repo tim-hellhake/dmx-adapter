@@ -102,11 +102,11 @@ impl Plugin {
 
         self.client.lock().await.send_message(&message).await?;
 
-        Ok(Adapter {
-            client: self.client.clone(),
-            plugin_id: self.plugin_id.clone(),
-            adapter_id: adapter_id.to_owned(),
-        })
+        Ok(Adapter::new(
+            self.client.clone(),
+            self.plugin_id.clone(),
+            adapter_id.to_owned(),
+        ))
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {

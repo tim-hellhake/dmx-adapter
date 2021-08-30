@@ -13,13 +13,27 @@ use webthings_gateway_ipc_types::{
 };
 
 pub struct Device {
-    pub client: Arc<Mutex<Client>>,
+    client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
     pub description: DeviceDescription,
 }
 
 impl Device {
+    pub fn new(
+        client: Arc<Mutex<Client>>,
+        plugin_id: String,
+        adapter_id: String,
+        description: DeviceDescription,
+    ) -> Self {
+        Device {
+            client,
+            plugin_id,
+            adapter_id,
+            description,
+        }
+    }
+
     pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), ApiError> {
         let device_id = self.description.id.clone();
         let properties = &mut self.description.properties;
