@@ -21,8 +21,10 @@ use webthings_gateway_ipc_types::{
 };
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
+const GATEWAY_URL: &str = "ws://localhost:9500";
+
 pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
-    let url = Url::parse("ws://localhost:9500").expect("Could not parse url");
+    let url = Url::parse(GATEWAY_URL).expect("Could not parse url");
 
     let (socket, _) = connect_async(url).await.map_err(ApiError::Connect)?;
 
