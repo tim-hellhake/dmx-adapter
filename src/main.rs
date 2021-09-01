@@ -31,6 +31,40 @@ async fn run() -> Result<(), ApiError> {
     let mut plugin = connect("dmx-adapter").await?;
     let mut adapters = HashMap::new();
 
+    let config_path = PathBuf::from(plugin.user_profile.config_dir.clone());
+    let database = Database::new(config_path);
+    let mut conf: Config = database.load_config();
+    conf.generate_ids();
+    database.save_config(&conf);
+
+    println!("Plugin registered");
+
+    for adapter_config in conf.adapters {
+        let id = adapter_config
+            .id
+            .as_ref()
+            .expect("adapters must have an id")
+            .clone();
+
+        let title = adapter_config.title.clone();
+
+        println!("Creating adapter '{}' ({})", title, id);
+
+        let mut dmx_adapter = DmxAdapter::new();
+
+        let adapter = plugin
+            .create_adapter(&id, &title)
+            .await
+            .expect("Could not create adapter");
+
+        dmx_adapter
+            .init(&adapter, adapter_config)
+            .await
+            .expect("Could not initialize adapter");
+
+        adapters.insert(id, (dmx_adapter, adapter));
+    }
+
     loop {
         match plugin.read().await {
             None => {}
@@ -61,43 +95,6 @@ async fn handle_message(
     message: IPCMessage,
 ) -> Result<MessageResult, String> {
     match message {
-        IPCMessage::PluginRegisterResponse(msg) => {
-            let config_path = PathBuf::from(msg.data.user_profile.config_dir);
-            let database = Database::new(config_path);
-            let mut conf: Config = database.load_config();
-            conf.generate_ids();
-            database.save_config(&conf);
-
-            println!("Plugin registered");
-
-            for adapter_config in conf.adapters {
-                let id = adapter_config
-                    .id
-                    .as_ref()
-                    .expect("adapters must have an id")
-                    .clone();
-
-                let title = adapter_config.title.clone();
-
-                println!("Creating adapter '{}' ({})", title, id);
-
-                let mut dmx_adapter = DmxAdapter::new();
-
-                let adapter = plugin
-                    .create_adapter(&id, &title)
-                    .await
-                    .expect("Could not create adapter");
-
-                dmx_adapter
-                    .init(&adapter, adapter_config)
-                    .await
-                    .expect("Could not initialize adapter");
-
-                adapters.insert(id, (dmx_adapter, adapter));
-            }
-
-            Ok(MessageResult::Continue)
-        }
         IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand {
             message_type: _,
             data: message,
