@@ -9,6 +9,7 @@ use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use futures::prelude::*;
 use futures::stream::SplitStream;
+use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -16,8 +17,8 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webthings_gateway_ipc_types::{
-    AdapterAddedNotificationMessageData, Message, PluginRegisterRequestMessageData,
-    PluginUnloadResponseMessageData, Preferences, UserProfile,
+    AdapterAddedNotificationMessageData, Message, PluginErrorNotificationMessageData,
+    PluginRegisterRequestMessageData, PluginUnloadResponseMessageData, Preferences, UserProfile,
 };
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
@@ -116,6 +117,20 @@ impl Plugin {
         .into();
 
         self.client.lock().await.send_message(&message).await
+    }
+
+    pub async fn fail(&self, message: String) -> Result<(), ApiError> {
+        let message: Message = PluginErrorNotificationMessageData {
+            plugin_id: self.plugin_id.clone(),
+            message,
+        }
+        .into();
+
+        self.client.lock().await.send_message(&message).await?;
+
+        self.unload().await?;
+
+        process::exit(100);
     }
 
     pub async fn read(&mut self) -> Option<Result<IPCMessage, String>> {

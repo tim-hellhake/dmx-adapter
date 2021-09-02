@@ -57,10 +57,11 @@ async fn run() -> Result<(), ApiError> {
             .await
             .expect("Could not create adapter");
 
-        dmx_adapter
-            .init(&adapter, adapter_config)
-            .await
-            .expect("Could not initialize adapter");
+        if let Err(err) = dmx_adapter.init(&adapter, adapter_config).await {
+            plugin
+                .fail(format!("Failed to initialize adapter: {}", err))
+                .await?;
+        }
 
         adapters.insert(id, (dmx_adapter, adapter));
     }
