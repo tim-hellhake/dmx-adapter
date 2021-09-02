@@ -23,6 +23,7 @@ use webthings_gateway_ipc_types::{
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
 const GATEWAY_URL: &str = "ws://localhost:9500";
+const DONT_RESTART_EXIT_CODE: i32 = 100;
 
 pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
     let url = Url::parse(GATEWAY_URL).expect("Could not parse url");
@@ -130,7 +131,7 @@ impl Plugin {
 
         self.unload().await?;
 
-        process::exit(100);
+        process::exit(DONT_RESTART_EXIT_CODE);
     }
 
     pub async fn read(&mut self) -> Option<Result<IPCMessage, String>> {
