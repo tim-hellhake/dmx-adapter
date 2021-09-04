@@ -12,8 +12,10 @@ use futures::stream::SplitStream;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webthings_gateway_ipc_types::{
@@ -130,6 +132,8 @@ impl Plugin {
         self.client.lock().await.send_message(&message).await?;
 
         self.unload().await?;
+
+        sleep(Duration::from_millis(500)).await;
 
         process::exit(DONT_RESTART_EXIT_CODE);
     }

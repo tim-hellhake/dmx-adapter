@@ -23,7 +23,7 @@ features = ["derive"]
 
 [dependencies.tokio]
 version = "1.0.0"
-features = ["macros", "rt-multi-thread", "sync"]
+features = ["macros", "rt-multi-thread", "sync", "time"]
 
 [dependencies.uuid]
 version = "0.8.2"
