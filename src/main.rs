@@ -52,10 +52,7 @@ async fn run() -> Result<(), ApiError> {
 
         let mut dmx_adapter = DmxAdapter::new();
 
-        let adapter = plugin
-            .create_adapter(&id, &title)
-            .await
-            .expect("Could not create adapter");
+        let adapter = plugin.create_adapter(&id, &title).await?;
 
         if let Err(err) = dmx_adapter.init(&adapter, adapter_config).await {
             plugin
