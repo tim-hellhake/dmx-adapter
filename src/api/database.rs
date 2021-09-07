@@ -6,18 +6,18 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlite::{Connection, Value};
-use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub struct Database {
     path: PathBuf,
+    plugin_id: String,
 }
 
 impl Database {
-    pub fn new(mut path: PathBuf) -> Self {
+    pub fn new(mut path: PathBuf, plugin_id: String) -> Self {
         path.push("db.sqlite3");
 
-        Self { path }
+        Self { path, plugin_id }
     }
 
     pub fn load_config<T>(&self) -> T
@@ -30,7 +30,7 @@ impl Database {
     }
 
     pub fn load_string(&self) -> String {
-        let key = Database::key();
+        let key = self.key();
         let connection = self.open();
 
         let mut cursor = connection
@@ -62,7 +62,7 @@ impl Database {
     }
 
     pub fn save_string(&self, s: String) {
-        let key = Database::key();
+        let key = self.key();
         let connection = self.open();
 
         let mut statement = connection
@@ -80,22 +80,7 @@ impl Database {
         sqlite::open(self.path.as_path()).expect("Could not open database")
     }
 
-    fn key() -> String {
-        let arg = env::args()
-            .nth(1)
-            .expect("Expects addon path as first argument");
-
-        let path = Path::new(&arg);
-
-        let addon_dir = path
-            .file_stem()
-            .expect("Could not extract addon name from path");
-
-        return format!(
-            "addons.config.{}",
-            addon_dir
-                .to_str()
-                .expect("Could not convert add name to str")
-        );
+    fn key(&self) -> String {
+        return format!("addons.config.{}", self.plugin_id);
     }
 }
