@@ -47,10 +47,10 @@ impl Database {
             .expect("Could not iterate over cursor")
             .expect("No config in the database found");
 
-        return row[0]
+        row[0]
             .as_string()
             .expect("Value row is not a string")
-            .to_owned();
+            .to_owned()
     }
 
     pub fn save_config<T>(&self, t: &T)
@@ -81,6 +81,6 @@ impl Database {
     }
 
     fn key(&self) -> String {
-        return format!("addons.config.{}", self.plugin_id);
+        format!("addons.config.{}", self.plugin_id)
     }
 }
