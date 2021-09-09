@@ -33,9 +33,9 @@ async fn run() -> Result<(), ApiError> {
 
     let config_path = PathBuf::from(plugin.user_profile.config_dir.clone());
     let database = Database::new(config_path, plugin.plugin_id.clone());
-    let mut conf: Config = database.load_config();
+    let mut conf: Config = database.load_config()?;
     conf.generate_ids();
-    database.save_config(&conf);
+    database.save_config(&conf)?;
 
     println!("Plugin registered");
 

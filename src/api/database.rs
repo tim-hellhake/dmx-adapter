@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
+use crate::api::api_error::ApiError;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlite::{Connection, Value};
@@ -20,12 +21,13 @@ impl Database {
         Self { path, plugin_id }
     }
 
-    pub fn load_config<T>(&self) -> T
+    pub fn load_config<T>(&self) -> Result<T, ApiError>
     where
         T: DeserializeOwned,
     {
         let json = self.load_string();
-        let config: T = serde_json::from_str(json.as_str()).expect("Could not parse config");
+        let config: Result<T, ApiError> =
+            serde_json::from_str(json.as_str()).map_err(ApiError::Serialization);
         config
     }
 
@@ -53,12 +55,13 @@ impl Database {
             .to_owned()
     }
 
-    pub fn save_config<T>(&self, t: &T)
+    pub fn save_config<T>(&self, t: &T) -> Result<(), ApiError>
     where
         T: Serialize,
     {
-        let json = serde_json::to_string(t).expect("Could not serialize config");
+        let json = serde_json::to_string(t).map_err(ApiError::Serialization)?;
         self.save_string(json);
+        Ok(())
     }
 
     pub fn save_string(&self, s: String) {
