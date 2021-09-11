@@ -25,34 +25,34 @@ impl Database {
     where
         T: DeserializeOwned,
     {
-        let json = self.load_string();
+        let json = self.load_string()?;
         let config: Result<T, ApiError> =
             serde_json::from_str(json.as_str()).map_err(ApiError::Serialization);
         config
     }
 
-    pub fn load_string(&self) -> String {
+    pub fn load_string(&self) -> Result<String, ApiError> {
         let key = self.key();
-        let connection = self.open();
+        let connection = self.open()?;
 
         let mut cursor = connection
             .prepare("SELECT value FROM settings WHERE key = ?")
-            .expect("Could not select settings")
+            .map_err(ApiError::Database)?
             .into_cursor();
 
         cursor
             .bind(&[Value::String(key)])
-            .expect("Could not bind key");
+            .map_err(ApiError::Database)?;
 
         let row = cursor
             .next()
-            .expect("Could not iterate over cursor")
+            .map_err(ApiError::Database)?
             .expect("No config in the database found");
 
-        row[0]
+        Ok(row[0]
             .as_string()
             .expect("Value row is not a string")
-            .to_owned()
+            .to_owned())
     }
 
     pub fn save_config<T>(&self, t: &T) -> Result<(), ApiError>
@@ -60,27 +60,29 @@ impl Database {
         T: Serialize,
     {
         let json = serde_json::to_string(t).map_err(ApiError::Serialization)?;
-        self.save_string(json);
+        self.save_string(json)?;
         Ok(())
     }
 
-    pub fn save_string(&self, s: String) {
+    pub fn save_string(&self, s: String) -> Result<(), ApiError> {
         let key = self.key();
-        let connection = self.open();
+        let connection = self.open()?;
 
         let mut statement = connection
             .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
-            .expect("Could not prepare statement");
+            .map_err(ApiError::Database)?;
 
         statement
             .bind(1, key.as_str())
-            .expect("Could not bind value");
-        statement.bind(2, s.as_str()).expect("Could not bind value");
-        statement.next().expect("Could not save config");
+            .map_err(ApiError::Database)?;
+        statement.bind(2, s.as_str()).map_err(ApiError::Database)?;
+        statement.next().map_err(ApiError::Database)?;
+
+        Ok(())
     }
 
-    fn open(&self) -> Connection {
-        sqlite::open(self.path.as_path()).expect("Could not open database")
+    fn open(&self) -> Result<Connection, ApiError> {
+        sqlite::open(self.path.as_path()).map_err(ApiError::Database)
     }
 
     fn key(&self) -> String {

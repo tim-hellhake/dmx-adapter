@@ -21,4 +21,7 @@ pub enum ApiError {
         device_id: String,
         property_name: String,
     },
+
+    #[error("Failed to access database")]
+    Database(#[source] sqlite::Error),
 }
