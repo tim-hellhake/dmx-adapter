@@ -36,16 +36,11 @@ async fn run() -> Result<(), ApiError> {
     let database = Database::new(config_path, plugin.plugin_id.clone());
     let conf: Option<Config> = database.load_config()?;
 
-    if let Some(mut conf) = conf {
-        conf.generate_ids();
+    if let Some(conf) = conf {
         database.save_config(&conf)?;
 
         for adapter_config in conf.adapters {
-            let id = adapter_config
-                .id
-                .as_ref()
-                .expect("adapters must have an id")
-                .clone();
+            let id = adapter_config.id.clone();
 
             let title = adapter_config.title.clone();
 

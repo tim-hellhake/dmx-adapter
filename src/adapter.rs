@@ -34,8 +34,7 @@ impl DmxAdapter {
         for device_config in adapter_config.devices {
             println!(
                 "Creating device '{}' ({})",
-                device_config.title,
-                device_config.id.as_ref().unwrap_or(&String::from(""))
+                device_config.title, device_config.id
             );
 
             let dmx_device = DmxDevice::new(device_config);

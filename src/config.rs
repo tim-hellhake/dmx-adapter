@@ -15,7 +15,8 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Adapter {
-    pub id: Option<String>,
+    #[serde(default = "uuid")]
+    pub id: String,
     pub title: String,
     pub serial_port: String,
     pub devices: Vec<Device>,
@@ -24,7 +25,8 @@ pub struct Adapter {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Device {
-    pub id: Option<String>,
+    #[serde(default = "uuid")]
+    pub id: String,
     pub title: String,
     pub properties: Vec<Property>,
 }
@@ -32,47 +34,12 @@ pub struct Device {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Property {
-    pub id: Option<String>,
+    #[serde(default = "uuid")]
+    pub id: String,
     pub title: String,
     pub address: u8,
 }
 
-impl Config {
-    pub fn generate_ids(&mut self) {
-        for adapter in &mut self.adapters {
-            adapter.generate_ids();
-        }
-    }
-}
-
-impl Adapter {
-    pub fn generate_ids(&mut self) {
-        if self.id.is_none() {
-            self.id = Some(Uuid::new_v4().to_string());
-        }
-
-        for device in &mut self.devices {
-            device.generate_ids();
-        }
-    }
-}
-
-impl Device {
-    pub fn generate_ids(&mut self) {
-        if self.id.is_none() {
-            self.id = Some(Uuid::new_v4().to_string());
-        }
-
-        for property in &mut self.properties {
-            property.generate_ids();
-        }
-    }
-}
-
-impl Property {
-    pub fn generate_ids(&mut self) {
-        if self.id.is_none() {
-            self.id = Some(Uuid::new_v4().to_string());
-        }
-    }
+fn uuid() -> String {
+    Uuid::new_v4().to_string()
 }

@@ -22,10 +22,7 @@ impl DmxDevice {
         let mut property_descriptions = BTreeMap::new();
 
         for property_config in device_config.properties {
-            let id = property_config
-                .id
-                .clone()
-                .expect("Properties must have an id");
+            let id = property_config.id.clone();
 
             println!(
                 "Creating property '{}' ({}) for '{}'",
@@ -34,7 +31,7 @@ impl DmxDevice {
 
             let description = PropertyDescription {
                 at_type: Some(String::from("LevelProperty")),
-                name: Some(property_config.id.expect("Properties must have an id")),
+                name: Some(property_config.id),
                 title: Some(property_config.title.clone()),
                 description: Some(property_config.title),
                 type_: String::from("integer"),
@@ -56,7 +53,7 @@ impl DmxDevice {
         let description = Device {
             at_context: None,
             at_type: Some(vec![]),
-            id: device_config.id.expect("Devices must have an id"),
+            id: device_config.id,
             title: Some(String::from("Dmx")),
             description: Some(String::from("A dmx light")),
             properties: Some(property_descriptions),
