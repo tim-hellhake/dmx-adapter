@@ -21,17 +21,19 @@ impl Database {
         Self { path, plugin_id }
     }
 
-    pub fn load_config<T>(&self) -> Result<T, ApiError>
+    pub fn load_config<T>(&self) -> Result<Option<T>, ApiError>
     where
         T: DeserializeOwned,
     {
         let json = self.load_string()?;
-        let config: Result<T, ApiError> =
-            serde_json::from_str(json.as_str()).map_err(ApiError::Serialization);
-        config
+
+        match json {
+            Some(json) => serde_json::from_str(json.as_str()).map_err(ApiError::Serialization),
+            None => Ok(None),
+        }
     }
 
-    pub fn load_string(&self) -> Result<String, ApiError> {
+    pub fn load_string(&self) -> Result<Option<String>, ApiError> {
         let key = self.key();
         let connection = self.open()?;
 
@@ -44,15 +46,9 @@ impl Database {
             .bind(&[Value::String(key)])
             .map_err(ApiError::Database)?;
 
-        let row = cursor
-            .next()
-            .map_err(ApiError::Database)?
-            .expect("No config in the database found");
+        let row = cursor.next().map_err(ApiError::Database)?;
 
-        Ok(row[0]
-            .as_string()
-            .expect("Value row is not a string")
-            .to_owned())
+        Ok(row.and_then(|row| row[0].as_string().map(|str| str.to_owned())))
     }
 
     pub fn save_config<T>(&self, t: &T) -> Result<(), ApiError>
