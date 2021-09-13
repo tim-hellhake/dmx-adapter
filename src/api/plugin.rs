@@ -9,6 +9,7 @@ use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use futures::prelude::*;
 use futures::stream::SplitStream;
+use std::collections::HashMap;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -19,8 +20,9 @@ use tokio::time::sleep;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webthings_gateway_ipc_types::{
-    AdapterAddedNotificationMessageData, Message, PluginErrorNotificationMessageData,
-    PluginRegisterRequestMessageData, PluginUnloadResponseMessageData, Preferences, UserProfile,
+    AdapterAddedNotificationMessageData, AdapterUnloadRequest, DeviceSetPropertyCommand, Message,
+    PluginErrorNotificationMessageData, PluginRegisterRequestMessageData, PluginUnloadRequest,
+    PluginUnloadResponseMessageData, Preferences, UserProfile,
 };
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
@@ -68,6 +70,7 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
         user_profile,
         client: Arc::new(Mutex::new(client)),
         stream,
+        adapters: HashMap::new(),
     })
 }
 
@@ -92,10 +95,107 @@ pub struct Plugin {
     pub user_profile: UserProfile,
     client: Arc<Mutex<Client>>,
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    adapters: HashMap<String, Arc<Mutex<Adapter>>>,
+}
+
+enum MessageResult {
+    Continue,
+    Terminate,
 }
 
 impl Plugin {
-    pub async fn create_adapter(&self, adapter_id: &str, name: &str) -> Result<Adapter, ApiError> {
+    pub async fn event_loop(&mut self) {
+        loop {
+            match read(&mut self.stream).await {
+                None => {}
+                Some(result) => match result {
+                    Ok(message) => match self.handle_message(message).await {
+                        Ok(MessageResult::Continue) => {}
+                        Ok(MessageResult::Terminate) => {
+                            break;
+                        }
+                        Err(err) => eprintln!("Failed not handle message: {}", err),
+                    },
+                    Err(err) => println!("Could not read message: {}", err),
+                },
+            }
+        }
+    }
+
+    async fn handle_message(&mut self, message: IPCMessage) -> Result<MessageResult, String> {
+        match message {
+            IPCMessage::DeviceSetPropertyCommand(DeviceSetPropertyCommand {
+                message_type: _,
+                data: message,
+            }) => {
+                let adapter = self
+                    .adapters
+                    .get_mut(&message.adapter_id)
+                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+
+                let device = adapter.lock().await.get_device(&message.device_id);
+
+                if let Some(device) = device {
+                    device
+                        .lock()
+                        .await
+                        .on_property_updated(&message.property_name, message.property_value.clone())
+                        .await
+                        .map_err(|err| {
+                            format!(
+                                "Failed to update property {} of {}: {}",
+                                message.property_name, message.device_id, err,
+                            )
+                        })?;
+                }
+
+                Ok(MessageResult::Continue)
+            }
+            IPCMessage::AdapterUnloadRequest(AdapterUnloadRequest {
+                message_type: _,
+                data: message,
+            }) => {
+                println!(
+                    "Received request to unload adapter '{}'",
+                    message.adapter_id
+                );
+
+                let adapter = self
+                    .adapters
+                    .get_mut(&message.adapter_id)
+                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+
+                adapter
+                    .lock()
+                    .await
+                    .unload()
+                    .await
+                    .map_err(|err| format!("Could not send unload response: {}", err))?;
+
+                Ok(MessageResult::Continue)
+            }
+            IPCMessage::PluginUnloadRequest(PluginUnloadRequest {
+                message_type: _,
+                data: message,
+            }) => {
+                println!("Received request to unload plugin '{}'", message.plugin_id);
+
+                self.unload()
+                    .await
+                    .map_err(|err| format!("Could not send unload response: {}", err))?;
+
+                Ok(MessageResult::Terminate)
+            }
+            IPCMessage::DeviceSavedNotification(_) => Ok(MessageResult::Continue),
+            msg => Err(format!("Unexpected msg: {:?}", msg)),
+        }
+    }
+
+    pub async fn create_adapter(
+        &mut self,
+        adapter_id: &str,
+        name: &str,
+    ) -> Result<Arc<Mutex<Adapter>>, ApiError> {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: adapter_id.to_owned(),
@@ -106,11 +206,15 @@ impl Plugin {
 
         self.client.lock().await.send_message(&message).await?;
 
-        Ok(Adapter::new(
+        let adapter = Arc::new(Mutex::new(Adapter::new(
             self.client.clone(),
             self.plugin_id.clone(),
             adapter_id.to_owned(),
-        ))
+        )));
+
+        self.adapters.insert(adapter_id.to_owned(), adapter.clone());
+
+        Ok(adapter)
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {
@@ -136,9 +240,5 @@ impl Plugin {
         sleep(Duration::from_millis(500)).await;
 
         process::exit(DONT_RESTART_EXIT_CODE);
-    }
-
-    pub async fn read(&mut self) -> Option<Result<IPCMessage, String>> {
-        read(&mut self.stream).await
     }
 }

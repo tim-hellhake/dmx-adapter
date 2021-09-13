@@ -3,9 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::device;
 use crate::config;
-use crate::player::Player;
 use serde_json::value::Value;
 use std::collections::{BTreeMap, HashMap};
 use webthings_gateway_ipc_types::Device;
@@ -13,7 +11,7 @@ use webthings_gateway_ipc_types::{Device as DeviceDescription, Property as Prope
 
 pub struct DmxDevice {
     pub description: DeviceDescription,
-    property_addresses: HashMap<String, u8>,
+    pub property_addresses: HashMap<String, u8>,
 }
 
 impl DmxDevice {
@@ -68,40 +66,6 @@ impl DmxDevice {
         Self {
             description,
             property_addresses,
-        }
-    }
-
-    pub async fn update(
-        &mut self,
-        device: &mut device::Device,
-        player: &Player,
-        property_name: &str,
-        value: Value,
-    ) -> Result<(), String> {
-        let address = self.property_addresses.get(property_name).ok_or(format!(
-            "Cannot find property address for '{}' in '{}'",
-            property_name, self.description.id
-        ))?;
-
-        if let Value::Number(value) = value {
-            let value = value.as_u64().ok_or(format!(
-                "Value {} for {} is not an u64",
-                value, property_name
-            ))? as u8;
-
-            player
-                .set(*address as usize, vec![value])
-                .map_err(|err| format!("Could not send DMX value: {}", err))?;
-
-            device
-                .set_property_value(property_name, Value::from(value))
-                .await
-                .map_err(|err| format!("Could not value for property {}: {}", property_name, err))
-        } else {
-            Err(format!(
-                "Value {} for {} is not a number",
-                value, property_name
-            ))
         }
     }
 }

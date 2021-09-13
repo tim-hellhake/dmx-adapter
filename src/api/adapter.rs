@@ -6,6 +6,7 @@
 use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use crate::api::device;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{
@@ -16,6 +17,7 @@ pub struct Adapter {
     client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
+    devices: HashMap<String, Arc<Mutex<device::Device>>>,
 }
 
 impl Adapter {
@@ -24,10 +26,14 @@ impl Adapter {
             client,
             plugin_id,
             adapter_id,
+            devices: HashMap::new(),
         }
     }
 
-    pub async fn add_device(&self, device_description: Device) -> Result<device::Device, ApiError> {
+    pub async fn add_device(
+        &mut self,
+        device_description: Device,
+    ) -> Result<Arc<Mutex<device::Device>>, ApiError> {
         let message: Message = DeviceAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: self.adapter_id.clone(),
@@ -37,12 +43,22 @@ impl Adapter {
 
         self.client.lock().await.send_message(&message).await?;
 
-        Ok(device::Device::new(
+        let id = device_description.id.clone();
+
+        let device = Arc::new(Mutex::new(device::Device::new(
             self.client.clone(),
             self.plugin_id.clone(),
             self.adapter_id.clone(),
             device_description,
-        ))
+        )));
+
+        self.devices.insert(id, device.clone());
+
+        Ok(device)
+    }
+
+    pub fn get_device(&self, id: &str) -> Option<Arc<Mutex<device::Device>>> {
+        self.devices.get(id).cloned()
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {

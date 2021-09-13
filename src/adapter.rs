@@ -4,32 +4,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::api::adapter::Adapter;
-use crate::api::device::Device;
 use crate::config;
 use crate::device::DmxDevice;
+use crate::device_handler::DmxDeviceHandler;
 use crate::player::Player;
-use serde_json::value::Value;
-use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub struct DmxAdapter {
-    player: Player,
-    devices: HashMap<String, (DmxDevice, Device)>,
+    player: Arc<Mutex<Player>>,
 }
 
 impl DmxAdapter {
     pub fn new() -> Self {
         DmxAdapter {
-            player: Player::new(),
-            devices: HashMap::new(),
+            player: Arc::new(Mutex::new(Player::new())),
         }
     }
 
     pub async fn init(
         &mut self,
-        adapter: &Adapter,
+        adapter: &mut Arc<Mutex<Adapter>>,
         adapter_config: config::Adapter,
     ) -> Result<(), String> {
-        self.player.start(adapter_config.serial_port.as_str())?;
+        self.player
+            .lock()
+            .await
+            .start(adapter_config.serial_port.as_str())?;
 
         for device_config in adapter_config.devices {
             println!(
@@ -39,32 +40,23 @@ impl DmxAdapter {
 
             let dmx_device = DmxDevice::new(device_config);
 
-            match adapter.add_device(dmx_device.description.clone()).await {
+            match adapter
+                .lock()
+                .await
+                .add_device(dmx_device.description.clone())
+                .await
+            {
                 Ok(gateway_device) => {
-                    let id = dmx_device.description.id.clone();
-                    self.devices
-                        .insert(id.clone(), (dmx_device, gateway_device));
+                    let dmx_device_handler = DmxDeviceHandler::new(dmx_device, self.player.clone());
+                    gateway_device
+                        .lock()
+                        .await
+                        .set_device_handler(Arc::new(Mutex::new(dmx_device_handler)));
                 }
                 Err(err) => println!("Could not create device: {}", err),
             }
         }
 
         Ok(())
-    }
-
-    pub async fn update(
-        &mut self,
-        device_id: &str,
-        property_name: &str,
-        value: Value,
-    ) -> Result<(), String> {
-        let (dmx_device, device) = self
-            .devices
-            .get_mut(device_id)
-            .ok_or(format!("Cannot find device '{}'", device_id))?;
-
-        dmx_device
-            .update(device, &self.player, property_name, value)
-            .await
     }
 }
