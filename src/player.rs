@@ -27,7 +27,7 @@ impl Player {
 
         thread::spawn(move || loop {
             if let Err(err) = Player::send_buffer(&mut dmx_port, &buffer) {
-                println!("Could not send buffer: {}", err);
+                log::error!("Could not send buffer: {}", err);
             }
             thread::sleep(time::Duration::from_millis(50));
         });

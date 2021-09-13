@@ -8,6 +8,8 @@ use crate::api::api_error::ApiError;
 use crate::api::database::Database;
 use crate::api::plugin::connect;
 use crate::config::Config;
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 
 mod adapter;
@@ -19,13 +21,17 @@ mod player;
 
 #[tokio::main]
 async fn main() {
+    SimpleLogger::new()
+        .with_level(LevelFilter::Debug)
+        .init()
+        .unwrap();
     run().await.expect("Could not start adapter");
-    println!("Exiting adapter");
+    log::info!("Exiting adapter");
 }
 
 async fn run() -> Result<(), ApiError> {
     let mut plugin = connect("dmx-adapter").await?;
-    println!("Plugin registered");
+    log::debug!("Plugin registered");
 
     let config_path = PathBuf::from(plugin.user_profile.config_dir.clone());
     let database = Database::new(config_path, plugin.plugin_id.clone());
@@ -39,7 +45,7 @@ async fn run() -> Result<(), ApiError> {
 
             let title = adapter_config.title.clone();
 
-            println!("Creating adapter '{}' ({})", title, id);
+            log::debug!("Creating adapter '{}' ({})", title, id);
 
             let mut dmx_adapter = DmxAdapter::new();
 

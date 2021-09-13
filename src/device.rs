@@ -22,9 +22,11 @@ impl DmxDevice {
         for property_config in device_config.properties {
             let id = property_config.id.clone();
 
-            println!(
+            log::debug!(
                 "Creating property '{}' ({}) for '{}'",
-                property_config.title, id, device_config.title
+                property_config.title,
+                id,
+                device_config.title
             );
 
             let description = PropertyDescription {

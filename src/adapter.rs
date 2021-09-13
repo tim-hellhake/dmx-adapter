@@ -33,9 +33,10 @@ impl DmxAdapter {
             .start(adapter_config.serial_port.as_str())?;
 
         for device_config in adapter_config.devices {
-            println!(
+            log::debug!(
                 "Creating device '{}' ({})",
-                device_config.title, device_config.id
+                device_config.title,
+                device_config.id
             );
 
             let dmx_device = DmxDevice::new(device_config);
@@ -53,7 +54,7 @@ impl DmxAdapter {
                         .await
                         .set_device_handler(Arc::new(Mutex::new(dmx_device_handler)));
                 }
-                Err(err) => println!("Could not create device: {}", err),
+                Err(err) => log::error!("Could not create device: {}", err),
             }
         }
 

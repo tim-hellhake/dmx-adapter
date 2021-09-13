@@ -57,9 +57,9 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
                     break msg.data;
                 }
                 Ok(msg) => {
-                    eprintln!("Received unexpected message {:?}", msg);
+                    log::warn!("Received unexpected message {:?}", msg);
                 }
-                Err(err) => println!("Could not read message: {}", err),
+                Err(err) => log::error!("Could not read message: {}", err),
             },
         }
     };
@@ -114,9 +114,9 @@ impl Plugin {
                         Ok(MessageResult::Terminate) => {
                             break;
                         }
-                        Err(err) => eprintln!("Failed not handle message: {}", err),
+                        Err(err) => log::warn!("Failed not handle message: {}", err),
                     },
-                    Err(err) => println!("Could not read message: {}", err),
+                    Err(err) => log::warn!("Could not read message: {}", err),
                 },
             }
         }
@@ -155,7 +155,7 @@ impl Plugin {
                 message_type: _,
                 data: message,
             }) => {
-                println!(
+                log::info!(
                     "Received request to unload adapter '{}'",
                     message.adapter_id
                 );
@@ -178,7 +178,7 @@ impl Plugin {
                 message_type: _,
                 data: message,
             }) => {
-                println!("Received request to unload plugin '{}'", message.plugin_id);
+                log::info!("Received request to unload plugin '{}'", message.plugin_id);
 
                 self.unload()
                     .await
