@@ -6,7 +6,6 @@
 use crate::api::adapter::Adapter;
 use crate::config;
 use crate::device::DmxDevice;
-use crate::device_handler::DmxDeviceHandler;
 use crate::player::Player;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -39,22 +38,17 @@ impl DmxAdapter {
                 device_config.id
             );
 
-            let dmx_device = DmxDevice::new(device_config);
+            let description = DmxDevice::build_description(&device_config);
 
-            match adapter
+            if let Err(err) = adapter
                 .lock()
                 .await
-                .add_device(dmx_device.description.clone())
+                .add_device(description, |device| {
+                    DmxDevice::new(device_config, device, self.player.clone())
+                })
                 .await
             {
-                Ok(gateway_device) => {
-                    let dmx_device_handler = DmxDeviceHandler::new(dmx_device, self.player.clone());
-                    gateway_device
-                        .lock()
-                        .await
-                        .set_device_handler(Arc::new(Mutex::new(dmx_device_handler)));
-                }
-                Err(err) => log::error!("Could not create device: {}", err),
+                log::error!("Could not create device: {}", err)
             }
         }
 

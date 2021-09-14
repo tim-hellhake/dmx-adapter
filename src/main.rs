@@ -16,7 +16,6 @@ mod adapter;
 mod api;
 mod config;
 mod device;
-mod device_handler;
 mod player;
 
 #[tokio::main]
