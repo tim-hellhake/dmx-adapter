@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::device::{Device, DeviceHandler};
-use crate::config;
+use crate::api::device::{Device, DeviceHandle};
+use crate::config::Device as DeviceConfig;
 use crate::player::Player;
 use async_trait::async_trait;
 use serde_json::value::Value;
@@ -14,21 +14,25 @@ use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{Device as DeviceDescription, Property as PropertyDescription};
 
 pub struct DmxDevice {
-    device: Device,
+    device_handle: DeviceHandle,
     player: Arc<Mutex<Player>>,
     property_addresses: HashMap<String, u8>,
 }
 
 impl DmxDevice {
-    pub fn new(device_config: config::Device, device: Device, player: Arc<Mutex<Player>>) -> Self {
+    pub fn new(
+        device_config: DeviceConfig,
+        device_handle: DeviceHandle,
+        player: Arc<Mutex<Player>>,
+    ) -> Self {
         Self {
-            device,
+            device_handle,
             player,
             property_addresses: DmxDevice::build_property_addresses(device_config),
         }
     }
 
-    fn build_property_addresses(device_config: config::Device) -> HashMap<String, u8> {
+    fn build_property_addresses(device_config: DeviceConfig) -> HashMap<String, u8> {
         let mut property_addresses = HashMap::new();
 
         for property_config in device_config.properties {
@@ -38,7 +42,7 @@ impl DmxDevice {
         property_addresses
     }
 
-    pub fn build_description(device_config: &config::Device) -> DeviceDescription {
+    pub fn build_description(device_config: &DeviceConfig) -> DeviceDescription {
         let mut property_descriptions = BTreeMap::new();
 
         for property_config in &device_config.properties {
@@ -89,9 +93,9 @@ impl DmxDevice {
 }
 
 #[async_trait(?Send)]
-impl DeviceHandler for DmxDevice {
+impl Device for DmxDevice {
     async fn on_property_updated(&mut self, name: &str, value: Value) -> Result<(), String> {
-        let id = self.device.description.id.clone();
+        let id = self.device_handle.description.id.clone();
 
         let address = self.property_addresses.get(name).ok_or(format!(
             "Cannot find property address for '{}' in '{}'",
@@ -110,7 +114,7 @@ impl DeviceHandler for DmxDevice {
                 .set(*address as usize, vec![value])
                 .map_err(|err| format!("Could not send DMX value: {}", err))?;
 
-            self.device
+            self.device_handle
                 .set_property_value(name, Value::from(value))
                 .await
                 .map_err(|err| format!("Could not value for property {}: {}", name, err))

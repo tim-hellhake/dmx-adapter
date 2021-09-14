@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::adapter::Adapter;
-use crate::config;
+use crate::api::adapter::AdapterHandle;
+use crate::config::Adapter as AdapterConfig;
 use crate::device::DmxDevice;
 use crate::player::Player;
 use std::sync::Arc;
@@ -23,8 +23,8 @@ impl DmxAdapter {
 
     pub async fn init(
         &mut self,
-        adapter: &mut Arc<Mutex<Adapter>>,
-        adapter_config: config::Adapter,
+        adapter_handle: &mut Arc<Mutex<AdapterHandle>>,
+        adapter_config: AdapterConfig,
     ) -> Result<(), String> {
         self.player
             .lock()
@@ -40,7 +40,7 @@ impl DmxAdapter {
 
             let description = DmxDevice::build_description(&device_config);
 
-            if let Err(err) = adapter
+            if let Err(err) = adapter_handle
                 .lock()
                 .await
                 .add_device(description, |device| {

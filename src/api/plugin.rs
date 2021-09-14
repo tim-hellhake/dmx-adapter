@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 
-use crate::api::adapter::Adapter;
+use crate::api::adapter::AdapterHandle;
 use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use futures::prelude::*;
@@ -70,7 +70,7 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
         user_profile,
         client: Arc::new(Mutex::new(client)),
         stream,
-        adapters: HashMap::new(),
+        adapter_handles: HashMap::new(),
     })
 }
 
@@ -95,7 +95,7 @@ pub struct Plugin {
     pub user_profile: UserProfile,
     client: Arc<Mutex<Client>>,
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    adapters: HashMap<String, Arc<Mutex<Adapter>>>,
+    adapter_handles: HashMap<String, Arc<Mutex<AdapterHandle>>>,
 }
 
 enum MessageResult {
@@ -129,7 +129,7 @@ impl Plugin {
                 data: message,
             }) => {
                 let adapter = self
-                    .adapters
+                    .adapter_handles
                     .get_mut(&message.adapter_id)
                     .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
 
@@ -161,7 +161,7 @@ impl Plugin {
                 );
 
                 let adapter = self
-                    .adapters
+                    .adapter_handles
                     .get_mut(&message.adapter_id)
                     .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
 
@@ -195,7 +195,7 @@ impl Plugin {
         &mut self,
         adapter_id: &str,
         name: &str,
-    ) -> Result<Arc<Mutex<Adapter>>, ApiError> {
+    ) -> Result<Arc<Mutex<AdapterHandle>>, ApiError> {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: adapter_id.to_owned(),
@@ -206,15 +206,16 @@ impl Plugin {
 
         self.client.lock().await.send_message(&message).await?;
 
-        let adapter = Arc::new(Mutex::new(Adapter::new(
+        let adapter_handle = Arc::new(Mutex::new(AdapterHandle::new(
             self.client.clone(),
             self.plugin_id.clone(),
             adapter_id.to_owned(),
         )));
 
-        self.adapters.insert(adapter_id.to_owned(), adapter.clone());
+        self.adapter_handles
+            .insert(adapter_id.to_owned(), adapter_handle.clone());
 
-        Ok(adapter)
+        Ok(adapter_handle)
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {

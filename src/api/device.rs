@@ -14,25 +14,25 @@ use webthings_gateway_ipc_types::{
 };
 
 #[async_trait(?Send)]
-pub trait DeviceHandler {
+pub trait Device {
     async fn on_property_updated(&mut self, name: &str, value: Value) -> Result<(), String>;
 }
 
-pub struct Device {
+pub struct DeviceHandle {
     client: Arc<Mutex<Client>>,
     pub plugin_id: String,
     pub adapter_id: String,
     pub description: DeviceDescription,
 }
 
-impl Device {
+impl DeviceHandle {
     pub fn new(
         client: Arc<Mutex<Client>>,
         plugin_id: String,
         adapter_id: String,
         description: DeviceDescription,
     ) -> Self {
-        Device {
+        DeviceHandle {
             client,
             plugin_id,
             adapter_id,
