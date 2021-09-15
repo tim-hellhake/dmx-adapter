@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 
-use crate::api::adapter::AdapterHandle;
+use crate::api::adapter::{Adapter, AdapterHandle};
 use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use futures::prelude::*;
@@ -20,9 +20,10 @@ use tokio::time::sleep;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webthings_gateway_ipc_types::{
-    AdapterAddedNotificationMessageData, AdapterUnloadRequest, DeviceSetPropertyCommand, Message,
-    PluginErrorNotificationMessageData, PluginRegisterRequestMessageData, PluginUnloadRequest,
-    PluginUnloadResponseMessageData, Preferences, UserProfile,
+    AdapterAddedNotificationMessageData, AdapterUnloadRequest, DeviceSavedNotification,
+    DeviceSetPropertyCommand, Message, PluginErrorNotificationMessageData,
+    PluginRegisterRequestMessageData, PluginUnloadRequest, PluginUnloadResponseMessageData,
+    Preferences, UserProfile,
 };
 use webthings_gateway_ipc_types::{Message as IPCMessage, PluginRegisterResponseMessageData};
 
@@ -70,7 +71,7 @@ pub async fn connect(plugin_id: &str) -> Result<Plugin, ApiError> {
         user_profile,
         client: Arc::new(Mutex::new(client)),
         stream,
-        adapter_handles: HashMap::new(),
+        adapters: HashMap::new(),
     })
 }
 
@@ -95,7 +96,7 @@ pub struct Plugin {
     pub user_profile: UserProfile,
     client: Arc<Mutex<Client>>,
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    adapter_handles: HashMap<String, Arc<Mutex<AdapterHandle>>>,
+    adapters: HashMap<String, Arc<Mutex<dyn Adapter>>>,
 }
 
 enum MessageResult {
@@ -129,11 +130,15 @@ impl Plugin {
                 data: message,
             }) => {
                 let adapter = self
-                    .adapter_handles
+                    .adapters
                     .get_mut(&message.adapter_id)
                     .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
 
-                let device = adapter.lock().await.get_device(&message.device_id);
+                let device = adapter
+                    .lock()
+                    .await
+                    .get_adapter_handle()
+                    .get_device(&message.device_id);
 
                 if let Some(device) = device {
                     device
@@ -161,13 +166,14 @@ impl Plugin {
                 );
 
                 let adapter = self
-                    .adapter_handles
+                    .adapters
                     .get_mut(&message.adapter_id)
                     .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
 
                 adapter
                     .lock()
                     .await
+                    .get_adapter_handle()
                     .unload()
                     .await
                     .map_err(|err| format!("Could not send unload response: {}", err))?;
@@ -186,16 +192,37 @@ impl Plugin {
 
                 Ok(MessageResult::Terminate)
             }
-            IPCMessage::DeviceSavedNotification(_) => Ok(MessageResult::Continue),
+            IPCMessage::DeviceSavedNotification(DeviceSavedNotification {
+                message_type: _,
+                data: message,
+            }) => {
+                let adapter = self
+                    .adapters
+                    .get_mut(&message.adapter_id)
+                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+
+                adapter
+                    .lock()
+                    .await
+                    .on_device_saved(message.device_id, message.device)
+                    .await
+                    .map_err(|err| format!("Could not send unload response: {}", err))?;
+                Ok(MessageResult::Continue)
+            }
             msg => Err(format!("Unexpected msg: {:?}", msg)),
         }
     }
 
-    pub async fn create_adapter(
+    pub async fn create_adapter<T, F>(
         &mut self,
         adapter_id: &str,
         name: &str,
-    ) -> Result<Arc<Mutex<AdapterHandle>>, ApiError> {
+        constructor: F,
+    ) -> Result<Arc<Mutex<T>>, ApiError>
+    where
+        T: Adapter + 'static,
+        F: FnOnce(AdapterHandle) -> T,
+    {
         let message: Message = AdapterAddedNotificationMessageData {
             plugin_id: self.plugin_id.clone(),
             adapter_id: adapter_id.to_owned(),
@@ -206,16 +233,17 @@ impl Plugin {
 
         self.client.lock().await.send_message(&message).await?;
 
-        let adapter_handle = Arc::new(Mutex::new(AdapterHandle::new(
+        let adapter_handle = AdapterHandle::new(
             self.client.clone(),
             self.plugin_id.clone(),
             adapter_id.to_owned(),
-        )));
+        );
 
-        self.adapter_handles
-            .insert(adapter_id.to_owned(), adapter_handle.clone());
+        let adapter = Arc::new(Mutex::new(constructor(adapter_handle)));
 
-        Ok(adapter_handle)
+        self.adapters.insert(adapter_id.to_owned(), adapter.clone());
+
+        Ok(adapter)
     }
 
     pub async fn unload(&self) -> Result<(), ApiError> {

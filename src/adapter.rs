@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::adapter::AdapterHandle;
+use crate::api::adapter::{Adapter, AdapterHandle};
 use crate::config::Adapter as AdapterConfig;
 use crate::device::DmxDevice;
 use crate::player::Player;
@@ -11,21 +11,19 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub struct DmxAdapter {
+    adapter_handle: AdapterHandle,
     player: Arc<Mutex<Player>>,
 }
 
 impl DmxAdapter {
-    pub fn new() -> Self {
+    pub fn new(adapter_handle: AdapterHandle) -> Self {
         DmxAdapter {
+            adapter_handle,
             player: Arc::new(Mutex::new(Player::new())),
         }
     }
 
-    pub async fn init(
-        &mut self,
-        adapter_handle: &mut Arc<Mutex<AdapterHandle>>,
-        adapter_config: AdapterConfig,
-    ) -> Result<(), String> {
+    pub async fn init(&mut self, adapter_config: AdapterConfig) -> Result<(), String> {
         self.player
             .lock()
             .await
@@ -40,11 +38,12 @@ impl DmxAdapter {
 
             let description = DmxDevice::build_description(&device_config);
 
-            if let Err(err) = adapter_handle
-                .lock()
-                .await
+            let player = self.player.clone();
+
+            if let Err(err) = self
+                .adapter_handle
                 .add_device(description, |device| {
-                    DmxDevice::new(device_config, device, self.player.clone())
+                    DmxDevice::new(device_config, device, player)
                 })
                 .await
             {
@@ -53,5 +52,11 @@ impl DmxAdapter {
         }
 
         Ok(())
+    }
+}
+
+impl Adapter for DmxAdapter {
+    fn get_adapter_handle(&self) -> &AdapterHandle {
+        &self.adapter_handle
     }
 }

@@ -7,13 +7,27 @@ use crate::api::api_error::ApiError;
 use crate::api::client::Client;
 use crate::api::device;
 use crate::api::device::Device;
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use webthings_gateway_ipc_types::{
     AdapterUnloadResponseMessageData, Device as DeviceDescription,
-    DeviceAddedNotificationMessageData, Message,
+    DeviceAddedNotificationMessageData, DeviceWithoutId, Message,
 };
+
+#[async_trait(?Send)]
+pub trait Adapter {
+    fn get_adapter_handle(&self) -> &AdapterHandle;
+
+    async fn on_device_saved(
+        &mut self,
+        _id: String,
+        _device_description: DeviceWithoutId,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+}
 
 pub struct AdapterHandle {
     client: Arc<Mutex<Client>>,

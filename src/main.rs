@@ -46,11 +46,15 @@ async fn run() -> Result<(), ApiError> {
 
             log::debug!("Creating adapter '{}' ({})", title, id);
 
-            let mut dmx_adapter = DmxAdapter::new();
+            let adapter = plugin
+                .create_adapter(&id, &title, |adapter_handle| {
+                    DmxAdapter::new(adapter_handle)
+                })
+                .await?;
 
-            let mut adapter = plugin.create_adapter(&id, &title).await?;
+            let result = adapter.lock().await.init(adapter_config).await;
 
-            if let Err(err) = dmx_adapter.init(&mut adapter, adapter_config).await {
+            if let Err(err) = result {
                 plugin
                     .fail(format!("Failed to initialize adapter: {}", err))
                     .await?;
