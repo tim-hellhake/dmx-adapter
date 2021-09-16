@@ -115,7 +115,7 @@ impl Plugin {
                         Ok(MessageResult::Terminate) => {
                             break;
                         }
-                        Err(err) => log::warn!("Failed not handle message: {}", err),
+                        Err(err) => log::warn!("Could not handle message: {}", err),
                     },
                     Err(err) => log::warn!("Could not read message: {}", err),
                 },

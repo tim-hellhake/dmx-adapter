@@ -117,7 +117,7 @@ impl Device for DmxDevice {
             self.device_handle
                 .set_property_value(name, Value::from(value))
                 .await
-                .map_err(|err| format!("Could not value for property {}: {}", name, err))
+                .map_err(|err| format!("Could not set value for property {}: {}", name, err))
         } else {
             Err(format!("Value {} for {} is not a number", value, name))
         }
