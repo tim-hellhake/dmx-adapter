@@ -17,6 +17,7 @@ mod api;
 mod config;
 mod device;
 mod player;
+mod property;
 
 #[tokio::main]
 async fn main() {

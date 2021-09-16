@@ -16,12 +16,6 @@ pub enum ApiError {
     #[error("Failed to serialize message")]
     Serialization(#[source] serde_json::Error),
 
-    #[error("Device {device_id} has no property called {property_name}")]
-    PropertyNotFound {
-        device_id: String,
-        property_name: String,
-    },
-
     #[error("Failed to access database")]
     Database(#[source] sqlite::Error),
 }

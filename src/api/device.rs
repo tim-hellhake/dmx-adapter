@@ -3,19 +3,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::api_error::ApiError;
+
 use crate::api::client::Client;
+
+use crate::api::property::{Property, PropertyHandle};
 use async_trait::async_trait;
-use serde_json::Value;
+
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use webthings_gateway_ipc_types::{
-    Device as DeviceDescription, DevicePropertyChangedNotificationMessageData, Message,
-};
+use webthings_gateway_ipc_types::{Device as DeviceDescription, Property as PropertyDescription};
 
 #[async_trait(?Send)]
 pub trait Device {
-    async fn on_property_updated(&mut self, name: &str, value: Value) -> Result<(), String>;
+    fn get_device_handle(&mut self) -> &mut DeviceHandle;
 }
 
 pub struct DeviceHandle {
@@ -23,6 +24,7 @@ pub struct DeviceHandle {
     pub plugin_id: String,
     pub adapter_id: String,
     pub description: DeviceDescription,
+    properties: HashMap<String, Arc<Mutex<dyn Property>>>,
 }
 
 impl DeviceHandle {
@@ -37,39 +39,34 @@ impl DeviceHandle {
             plugin_id,
             adapter_id,
             description,
+            properties: HashMap::new(),
         }
     }
 
-    pub async fn set_property_value(&mut self, name: &str, value: Value) -> Result<(), ApiError> {
-        let device_id = self.description.id.clone();
-        let properties = &mut self.description.properties;
+    pub fn add_property<T, F>(
+        &mut self,
+        name: String,
+        description: PropertyDescription,
+        constructor: F,
+    ) where
+        T: Property + 'static,
+        F: FnOnce(PropertyHandle) -> T,
+    {
+        let property_handle = PropertyHandle::new(
+            self.client.clone(),
+            self.plugin_id.clone(),
+            self.adapter_id.clone(),
+            self.description.id.clone(),
+            name.clone(),
+            description,
+        );
 
-        match properties {
-            Some(properties) => {
-                let mut property =
-                    properties
-                        .get_mut(name)
-                        .ok_or_else(|| ApiError::PropertyNotFound {
-                            device_id,
-                            property_name: name.to_owned(),
-                        })?;
+        let property = Arc::new(Mutex::new(constructor(property_handle)));
 
-                property.value = Some(value);
+        self.properties.insert(name, property);
+    }
 
-                let message: Message = DevicePropertyChangedNotificationMessageData {
-                    plugin_id: self.plugin_id.clone(),
-                    adapter_id: self.adapter_id.clone(),
-                    device_id: self.description.id.clone(),
-                    property: property.clone(),
-                }
-                .into();
-
-                self.client.lock().await.send_message(&message).await
-            }
-            None => Err(ApiError::PropertyNotFound {
-                device_id,
-                property_name: name.to_owned(),
-            }),
-        }
+    pub fn get_property(&self, name: &str) -> Option<Arc<Mutex<dyn Property>>> {
+        self.properties.get(name).cloned()
     }
 }

@@ -9,3 +9,4 @@ pub mod client;
 pub mod database;
 pub mod device;
 pub mod plugin;
+pub mod property;

@@ -141,17 +141,36 @@ impl Plugin {
                     .get_device(&message.device_id);
 
                 if let Some(device) = device {
-                    device
+                    let property = device
                         .lock()
                         .await
-                        .on_property_updated(&message.property_name, message.property_value.clone())
+                        .get_device_handle()
+                        .get_property(&message.property_name)
+                        .ok_or_else(|| {
+                            format!(
+                                "Failed to update property {} of {}: not found",
+                                message.property_name, message.device_id,
+                            )
+                        })?;
+
+                    property
+                        .lock()
                         .await
+                        .on_update(message.property_value.clone())
+                        .await?;
+
+                    property
+                        .lock()
+                        .await
+                        .get_property_handle()
+                        .set_value(message.property_value.clone())
                         .map_err(|err| {
                             format!(
                                 "Failed to update property {} of {}: {}",
                                 message.property_name, message.device_id, err,
                             )
-                        })?;
+                        })
+                        .await?;
                 }
 
                 Ok(MessageResult::Continue)
