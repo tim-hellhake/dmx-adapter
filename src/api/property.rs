@@ -15,7 +15,7 @@ use webthings_gateway_ipc_types::{
 
 #[async_trait(?Send)]
 pub trait Property {
-    fn get_property_handle(&mut self) -> &mut PropertyHandle;
+    fn borrow_property_handle(&mut self) -> &mut PropertyHandle;
     async fn on_update(&mut self, value: Value) -> Result<(), String>;
 }
 

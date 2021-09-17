@@ -49,7 +49,7 @@ impl DmxProperty {
 
 #[async_trait(?Send)]
 impl Property for DmxProperty {
-    fn get_property_handle(&mut self) -> &mut PropertyHandle {
+    fn borrow_property_handle(&mut self) -> &mut PropertyHandle {
         &mut self.property_handle
     }
 

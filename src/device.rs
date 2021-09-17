@@ -85,7 +85,7 @@ impl DmxDevice {
 
 #[async_trait(?Send)]
 impl Device for DmxDevice {
-    fn get_device_handle(&mut self) -> &mut DeviceHandle {
+    fn borrow_device_handle(&mut self) -> &mut DeviceHandle {
         &mut self.device_handle
     }
 }

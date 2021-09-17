@@ -16,7 +16,7 @@ use webthings_gateway_ipc_types::{Device as DeviceDescription, Property as Prope
 
 #[async_trait(?Send)]
 pub trait Device {
-    fn get_device_handle(&mut self) -> &mut DeviceHandle;
+    fn borrow_device_handle(&mut self) -> &mut DeviceHandle;
 }
 
 pub struct DeviceHandle {

@@ -144,7 +144,7 @@ impl Plugin {
                     let property = device
                         .lock()
                         .await
-                        .get_device_handle()
+                        .borrow_device_handle()
                         .get_property(&message.property_name)
                         .ok_or_else(|| {
                             format!(
@@ -162,7 +162,7 @@ impl Plugin {
                     property
                         .lock()
                         .await
-                        .get_property_handle()
+                        .borrow_property_handle()
                         .set_value(message.property_value.clone())
                         .map_err(|err| {
                             format!(
