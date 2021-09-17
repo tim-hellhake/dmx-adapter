@@ -66,18 +66,18 @@ impl AdapterHandle {
 
         let id = device_description.id.clone();
 
-        let device = device::DeviceHandle::new(
+        let device_handle = device::DeviceHandle::new(
             self.client.clone(),
             self.plugin_id.clone(),
             self.adapter_id.clone(),
             device_description,
         );
 
-        let device_handler = Arc::new(Mutex::new(constructor(device)));
+        let device = Arc::new(Mutex::new(constructor(device_handle)));
 
-        self.devices.insert(id, device_handler.clone());
+        self.devices.insert(id, device.clone());
 
-        Ok(device_handler)
+        Ok(device)
     }
 
     pub fn get_device(&self, id: &str) -> Option<Arc<Mutex<dyn Device>>> {
