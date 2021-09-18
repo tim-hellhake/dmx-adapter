@@ -84,6 +84,8 @@ async fn read(
                 .to_text()
                 .map_err(|err| format!("Could not get text message: {:?}", err))?;
 
+            log::trace!("Received message {}", json);
+
             IPCMessage::from_str(json).map_err(|err| format!("Could not parse message: {:?}", err))
         }
         Err(err) => Err(err.to_string()),

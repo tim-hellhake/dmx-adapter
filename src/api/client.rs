@@ -27,6 +27,8 @@ impl Client {
     }
 
     pub async fn send(&mut self, msg: String) -> Result<(), ApiError> {
+        log::trace!("Sending message {}", msg);
+
         self.sink
             .send(Message::Text(msg))
             .await
