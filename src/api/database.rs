@@ -48,7 +48,11 @@ impl Database {
 
         let row = cursor.next().map_err(ApiError::Database)?;
 
-        Ok(row.and_then(|row| row[0].as_string().map(|str| str.to_owned())))
+        let s = row.and_then(|row| row[0].as_string().map(|str| str.to_owned()));
+
+        log::trace!("Loaded settings string {:?}", s);
+
+        Ok(s)
     }
 
     pub fn save_config<T>(&self, t: &T) -> Result<(), ApiError>
@@ -61,6 +65,7 @@ impl Database {
     }
 
     pub fn save_string(&self, s: String) -> Result<(), ApiError> {
+        log::trace!("Saving settings string {}", s);
         let key = self.key();
         let connection = self.open()?;
 
@@ -78,6 +83,7 @@ impl Database {
     }
 
     fn open(&self) -> Result<Connection, ApiError> {
+        log::trace!("Opening database {:?}", self.path);
         sqlite::open(self.path.as_path()).map_err(ApiError::Database)
     }
 
