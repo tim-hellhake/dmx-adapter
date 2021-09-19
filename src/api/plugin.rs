@@ -131,10 +131,7 @@ impl Plugin {
                 message_type: _,
                 data: message,
             }) => {
-                let adapter = self
-                    .adapters
-                    .get_mut(&message.adapter_id)
-                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+                let adapter = self.borrow_adapter(&message.adapter_id)?;
 
                 let device = adapter
                     .lock()
@@ -186,10 +183,7 @@ impl Plugin {
                     message.adapter_id
                 );
 
-                let adapter = self
-                    .adapters
-                    .get_mut(&message.adapter_id)
-                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+                let adapter = self.borrow_adapter(&message.adapter_id)?;
 
                 adapter
                     .lock()
@@ -217,10 +211,7 @@ impl Plugin {
                 message_type: _,
                 data: message,
             }) => {
-                let adapter = self
-                    .adapters
-                    .get_mut(&message.adapter_id)
-                    .ok_or_else(|| format!("Cannot find adapter '{}'", message.adapter_id))?;
+                let adapter = self.borrow_adapter(&message.adapter_id)?;
 
                 adapter
                     .lock()
@@ -232,6 +223,12 @@ impl Plugin {
             }
             msg => Err(format!("Unexpected msg: {:?}", msg)),
         }
+    }
+
+    fn borrow_adapter(&mut self, adapter_id: &str) -> Result<&mut Arc<Mutex<dyn Adapter>>, String> {
+        self.adapters
+            .get_mut(adapter_id)
+            .ok_or_else(|| format!("Cannot find adapter '{}'", adapter_id))
     }
 
     pub async fn create_adapter<T, F>(
