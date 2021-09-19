@@ -219,6 +219,7 @@ impl Plugin {
                     .on_device_saved(message.device_id, message.device)
                     .await
                     .map_err(|err| format!("Could not send unload response: {}", err))?;
+
                 Ok(MessageResult::Continue)
             }
             msg => Err(format!("Unexpected msg: {:?}", msg)),
