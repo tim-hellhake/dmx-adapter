@@ -3,10 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::property::{Property, PropertyHandle};
 use crate::config::Property as PropertyConfig;
 use crate::player::Player;
 use async_trait::async_trait;
+use gateway_addon_rust::property::{Property, PropertyHandle};
 use serde_json::value::Value;
 use std::sync::Arc;
 use tokio::sync::Mutex;

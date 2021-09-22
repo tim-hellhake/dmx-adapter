@@ -35,3 +35,6 @@ features = ["v4"]
 version = "1.13"
 default-features = false
 features = []
+
+[dependencies.gateway-addon-rust]
+git = "https://github.com/WebThingsIO/gateway-addon-rust"

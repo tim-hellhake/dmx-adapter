@@ -3,10 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::adapter::{Adapter, AdapterHandle};
 use crate::config::Adapter as AdapterConfig;
 use crate::device::DmxDevice;
 use crate::player::Player;
+use gateway_addon_rust::adapter::{Adapter, AdapterHandle};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

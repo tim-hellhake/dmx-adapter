@@ -4,16 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::adapter::DmxAdapter;
-use crate::api::api_error::ApiError;
-use crate::api::database::Database;
-use crate::api::plugin::connect;
 use crate::config::Config;
+use gateway_addon_rust::{api_error::ApiError, database::Database, plugin::connect};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 
 mod adapter;
-mod api;
 mod config;
 mod device;
 mod player;

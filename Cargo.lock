@@ -150,6 +150,7 @@ dependencies = [
  "dmx",
  "dmx-serial",
  "futures",
+ "gateway-addon-rust",
  "log",
  "serde",
  "serde_json",
@@ -293,6 +294,25 @@ dependencies = [
  "proc-macro-hack",
  "proc-macro-nested",
  "slab",
+]
+
+[[package]]
+name = "gateway-addon-rust"
+version = "1.0.0-alpha.1"
+source = "git+https://github.com/WebThingsIO/gateway-addon-rust#5dd8cef2b136a7c4e46b8ac058e88b25157555e9"
+dependencies = [
+ "async-trait",
+ "futures",
+ "log",
+ "serde",
+ "serde_json",
+ "sqlite",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "tungstenite",
+ "url",
+ "webthings-gateway-ipc-types",
 ]
 
 [[package]]

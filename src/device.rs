@@ -3,11 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
-use crate::api::device::{Device, DeviceHandle};
 use crate::config::Device as DeviceConfig;
 use crate::player::Player;
 use crate::property::DmxProperty;
 use async_trait::async_trait;
+use gateway_addon_rust::device::{Device, DeviceHandle};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
