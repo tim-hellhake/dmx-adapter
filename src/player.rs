@@ -5,6 +5,7 @@
  */
 use dmx::{self, DmxTransmitter};
 use dmx_serial::SystemPort;
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 
@@ -35,14 +36,17 @@ impl Player {
         Ok(())
     }
 
-    fn send_buffer(dmx_port: &mut SystemPort, buffer: &Arc<Mutex<Vec<u8>>>) -> Result<(), String> {
+    fn send_buffer(
+        dmx_port: &mut SystemPort,
+        buffer: &Arc<Mutex<Vec<u8>>>,
+    ) -> Result<(), Box<dyn Error>> {
         let buffer = buffer
             .lock()
             .map_err(|err| format!("Could not lock buffer : {}", err))?;
 
         dmx_port
             .send_dmx_packet(&(*buffer)[..])
-            .map_err(|err| format!("Could not send buffer : {}", err))?;
+            .map_err(|err| err)?;
 
         Ok(())
     }
