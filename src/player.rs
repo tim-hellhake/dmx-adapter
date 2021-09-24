@@ -21,7 +21,7 @@ impl Player {
     }
 
     pub fn start(&self, serial_port: &str) -> Result<(), String> {
-        let buffer = Arc::clone(&self.buffer);
+        let buffer = self.buffer.clone();
 
         let mut dmx_port = dmx::open_serial(serial_port)
             .map_err(|err| format!("Could not open serial port: {}", err))?;
