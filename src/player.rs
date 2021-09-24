@@ -51,16 +51,26 @@ impl Player {
         Ok(())
     }
 
-    pub fn set(&self, offset: usize, values: Vec<u8>) -> Result<(), String> {
-        let mut buffer = self
-            .buffer
-            .lock()
-            .map_err(|err| format!("Could not lock buffer : {}", err))?;
+    pub async fn set(&self, offset: usize, values: Vec<u8>) -> Result<(), String> {
+        let buffer = Arc::clone(&self.buffer);
 
-        for i in 0..values.len() {
-            buffer[i + offset] = values[i];
-        }
+        tokio::task::spawn_blocking(move || {
+            let buffer = buffer
+                .lock()
+                .map_err(|err| format!("Could not lock buffer: {}", err));
 
-        Ok(())
+            match buffer {
+                Ok(mut buffer) => {
+                    for i in 0..values.len() {
+                        buffer[i + offset] = values[i];
+                    }
+
+                    Ok(())
+                }
+                Err(err) => Err(err),
+            }
+        })
+        .await
+        .map_err(|err| format!("Could set byte: {}", err))?
     }
 }
