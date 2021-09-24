@@ -22,7 +22,11 @@ async fn main() {
         .with_level(LevelFilter::Debug)
         .init()
         .unwrap();
-    run().await.expect("Could not start adapter");
+
+    if let Err(err) = run().await {
+        log::error!("Could not start adapter: {}", err);
+    }
+
     log::info!("Exiting adapter");
 }
 
