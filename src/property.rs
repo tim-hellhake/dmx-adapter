@@ -65,7 +65,7 @@ impl Property for DmxProperty {
             self.player
                 .lock()
                 .await
-                .set(self.address as usize, vec![value])
+                .set(vec![(self.address, value)])
                 .await
                 .map_err(|err| format!("Could not send DMX value: {}", err))
         } else {

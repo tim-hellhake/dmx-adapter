@@ -51,7 +51,7 @@ impl Player {
         Ok(())
     }
 
-    pub async fn set(&self, offset: usize, values: Vec<u8>) -> Result<(), String> {
+    pub async fn set(&self, values: Vec<(u8, u8)>) -> Result<(), String> {
         let buffer = Arc::clone(&self.buffer);
 
         tokio::task::spawn_blocking(move || {
@@ -61,8 +61,8 @@ impl Player {
 
             match buffer {
                 Ok(mut buffer) => {
-                    for i in 0..values.len() {
-                        buffer[i + offset] = values[i];
+                    for (address, value) in values {
+                        buffer[address as usize] = value;
                     }
 
                     Ok(())
