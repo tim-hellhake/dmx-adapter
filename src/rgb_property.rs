@@ -75,7 +75,7 @@ impl Property for RgbProperty {
                     (self.config.blue, color.b),
                 ])
                 .await
-                .map_err(|err| format!("Could not send DMX value: {}", err))
+                .map_err(|err| format!("Could not set DMX values: {}", err))
         } else {
             Err(format!("Value {} for {} is not a string", value, name))
         }

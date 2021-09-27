@@ -67,7 +67,7 @@ impl Property for DmxProperty {
                 .await
                 .set(vec![(self.address, value)])
                 .await
-                .map_err(|err| format!("Could not send DMX value: {}", err))
+                .map_err(|err| format!("Could not set DMX value: {}", err))
         } else {
             Err(format!("Value {} for {} is not a number", value, name))
         }
