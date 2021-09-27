@@ -15,6 +15,7 @@ mod config;
 mod device;
 mod player;
 mod property;
+mod rgb_property;
 
 #[tokio::main]
 async fn main() {

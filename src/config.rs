@@ -29,6 +29,7 @@ pub struct Device {
     pub id: String,
     pub title: String,
     pub properties: Vec<Property>,
+    pub rgb_properties: Vec<RgbProperty>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -38,6 +39,17 @@ pub struct Property {
     pub id: String,
     pub title: String,
     pub address: u8,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RgbProperty {
+    #[serde(default = "uuid")]
+    pub id: String,
+    pub title: String,
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
 }
 
 fn uuid() -> String {

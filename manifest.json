@@ -89,6 +89,43 @@
                           }
                         }
                       }
+                    },
+                    "rgbProperties": {
+                      "type": "array",
+                      "title": "List of RGB properties",
+                      "items": {
+                        "type": "object",
+                        "title": "RGB properties",
+                        "required": [
+                          "title",
+                          "red",
+                          "green",
+                          "blue"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "title": "The ID of the register (will be generated for you)",
+                            "readOnly": true
+                          },
+                          "title": {
+                            "type": "string",
+                            "title": "The title of the property"
+                          },
+                          "red": {
+                            "type": "integer",
+                            "title": "The address of the red color"
+                          },
+                          "green": {
+                            "type": "integer",
+                            "title": "The address of the green color"
+                          },
+                          "blue": {
+                            "type": "integer",
+                            "title": "The address of the blue color"
+                          }
+                        }
+                      }
                     }
                   }
                 }
