@@ -10,6 +10,7 @@ use crate::rgb_property::RgbProperty;
 use async_trait::async_trait;
 use gateway_addon_rust::device::{Device, DeviceHandle};
 
+use gateway_addon_rust::adapter::DeviceBuilder;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -17,6 +18,81 @@ use webthings_gateway_ipc_types::Device as DeviceDescription;
 
 pub struct DmxDevice {
     device_handle: DeviceHandle,
+}
+
+pub struct DmxDeviceBuilder {
+    device_config: DeviceConfig,
+    player: Arc<Mutex<Player>>,
+}
+
+impl DmxDeviceBuilder {
+    pub fn new(device_config: DeviceConfig, player: Arc<Mutex<Player>>) -> Self {
+        Self {
+            device_config,
+            player,
+        }
+    }
+}
+
+impl DeviceBuilder<DmxDevice> for DmxDeviceBuilder {
+    fn build(self, device_handle: DeviceHandle) -> DmxDevice {
+        DmxDevice::new(self.device_config, device_handle, self.player)
+    }
+
+    fn description(&self) -> DeviceDescription {
+        let mut property_descriptions = BTreeMap::new();
+
+        for property_config in &self.device_config.properties {
+            let id = property_config.id.clone();
+
+            log::debug!(
+                "Building property description '{}' ({}) for '{}'",
+                property_config.title,
+                id,
+                self.device_config.title
+            );
+
+            let description = DmxProperty::build_description(property_config);
+
+            property_descriptions.insert(id.clone(), description);
+        }
+
+        for property_config in &self.device_config.rgb_properties {
+            let id = property_config.id.clone();
+
+            log::debug!(
+                "Building rgb property description '{}' ({}) for '{}'",
+                property_config.title,
+                id,
+                self.device_config.title
+            );
+
+            let description = RgbProperty::build_description(property_config);
+
+            property_descriptions.insert(id.clone(), description);
+        }
+
+        let mut device_types = Vec::new();
+
+        if !self.device_config.rgb_properties.is_empty() {
+            device_types.push(String::from("ColorControl"));
+        }
+
+        DeviceDescription {
+            at_context: None,
+            at_type: Some(device_types),
+            id: self.device_config.id.clone(),
+            title: Some(String::from("Dmx")),
+            description: Some(String::from("A dmx light")),
+            properties: Some(property_descriptions),
+            actions: None,
+            events: None,
+            links: None,
+            base_href: None,
+            pin: None,
+            credentials_required: None,
+        }
+    }
 }
 
 impl DmxDevice {
@@ -68,61 +144,6 @@ impl DmxDevice {
         }
 
         Self { device_handle }
-    }
-
-    pub fn build_description(device_config: &DeviceConfig) -> DeviceDescription {
-        let mut property_descriptions = BTreeMap::new();
-
-        for property_config in &device_config.properties {
-            let id = property_config.id.clone();
-
-            log::debug!(
-                "Building property description '{}' ({}) for '{}'",
-                property_config.title,
-                id,
-                device_config.title
-            );
-
-            let description = DmxProperty::build_description(property_config);
-
-            property_descriptions.insert(id.clone(), description);
-        }
-
-        for property_config in &device_config.rgb_properties {
-            let id = property_config.id.clone();
-
-            log::debug!(
-                "Building rgb property description '{}' ({}) for '{}'",
-                property_config.title,
-                id,
-                device_config.title
-            );
-
-            let description = RgbProperty::build_description(property_config);
-
-            property_descriptions.insert(id.clone(), description);
-        }
-
-        let mut device_types = Vec::new();
-
-        if !device_config.rgb_properties.is_empty() {
-            device_types.push(String::from("ColorControl"));
-        }
-
-        DeviceDescription {
-            at_context: None,
-            at_type: Some(device_types),
-            id: device_config.id.clone(),
-            title: Some(String::from("Dmx")),
-            description: Some(String::from("A dmx light")),
-            properties: Some(property_descriptions),
-            actions: None,
-            events: None,
-            links: None,
-            base_href: None,
-            pin: None,
-            credentials_required: None,
-        }
     }
 }
 

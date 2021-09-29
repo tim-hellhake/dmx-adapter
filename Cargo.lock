@@ -309,7 +309,7 @@ dependencies = [
 [[package]]
 name = "gateway-addon-rust"
 version = "1.0.0-alpha.1"
-source = "git+https://github.com/WebThingsIO/gateway-addon-rust#5dd8cef2b136a7c4e46b8ac058e88b25157555e9"
+source = "git+https://github.com/WebThingsIO/gateway-addon-rust?branch=builder#0473ad90cdd1f913900992f1d69a2d4a22721b60"
 dependencies = [
  "async-trait",
  "futures",

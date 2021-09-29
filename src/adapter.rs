@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.*
  */
 use crate::config::Adapter as AdapterConfig;
-use crate::device::DmxDevice;
+use crate::device::DmxDeviceBuilder;
 use crate::player::Player;
 use gateway_addon_rust::adapter::{Adapter, AdapterHandle};
 use std::sync::Arc;
@@ -36,17 +36,10 @@ impl DmxAdapter {
                 device_config.id
             );
 
-            let description = DmxDevice::build_description(&device_config);
-
             let player = self.player.clone();
+            let device_builder = DmxDeviceBuilder::new(device_config, player);
 
-            if let Err(err) = self
-                .adapter_handle
-                .add_device(description, |device| {
-                    DmxDevice::new(device_config, device, player)
-                })
-                .await
-            {
+            if let Err(err) = self.adapter_handle.add_device(device_builder).await {
                 log::error!("Could not create device: {}", err)
             }
         }
