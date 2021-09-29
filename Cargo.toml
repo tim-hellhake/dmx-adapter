@@ -39,3 +39,4 @@ features = []
 
 [dependencies.gateway-addon-rust]
 git = "https://github.com/WebThingsIO/gateway-addon-rust"
+rev = "b868f55"

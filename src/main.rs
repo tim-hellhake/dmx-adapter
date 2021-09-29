@@ -5,10 +5,9 @@
  */
 use crate::adapter::DmxAdapter;
 use crate::config::Config;
-use gateway_addon_rust::{api_error::ApiError, database::Database, plugin::connect};
+use gateway_addon_rust::{api_error::ApiError, plugin::connect};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::path::PathBuf;
 
 mod adapter;
 mod config;
@@ -35,8 +34,7 @@ async fn run() -> Result<(), ApiError> {
     let mut plugin = connect("dmx-adapter").await?;
     log::debug!("Plugin registered");
 
-    let config_path = PathBuf::from(plugin.user_profile.config_dir.clone());
-    let database = Database::new(config_path, plugin.plugin_id.clone());
+    let database = plugin.get_config_database();
     let conf: Option<Config> = database.load_config()?;
 
     if let Some(conf) = conf {
